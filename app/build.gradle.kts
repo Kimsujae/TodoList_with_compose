@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     id("com.google.devtools.ksp")
-
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -20,6 +20,7 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
     }
 
     buildTypes {
@@ -71,6 +72,14 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation("com.google.dagger:hilt-android:2.44")
-    ksp("com.google.dagger:hilt-android-compiler:2.44")
+    implementation("androidx.room:room-runtime:2.6.1")
+    annotationProcessor("androidx.room:room-compiler:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+    //ksp(libs.io.mcarle)
+    //hilt for compose latest version
+    implementation("com.google.dagger:hilt-android:2.46.1")
+    ksp("com.google.dagger:hilt-android-compiler:2.46.1")
+    annotationProcessor("com.google.dagger:hilt-compiler:2.46.1")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
 }
