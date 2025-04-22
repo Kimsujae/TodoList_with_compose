@@ -1,7 +1,10 @@
 [versions]
 agp = "8.5.1"
+googleHiltAndroid = "2.50"
 hiltAndroid = "2.48"
+hiltAndroidCompiler = "2.50"
 hiltAndroidVersion = "2.44"
+hiltNavigationCompose = "1.2.0"
 ioMcarle = "konvert-api"
 kotlin = "1.9.0"
 coreKtx = "1.10.1"
@@ -14,13 +17,18 @@ composeBom = "2023.08.00"
 navigationCompose = "2.7.7"
 navigationUiKtx = "2.7.7"
 dagger = "2.52"
+roomKtx = "2.6.1"
+appcompat = "1.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigationUiKtx" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroidVersion" }
+hilt-android-compiler-v250 = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroidCompiler" }
 hilt-android-v244 = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroidVersion" }
+hilt-android-v250 = { module = "com.google.dagger:hilt-android", version.ref = "googleHiltAndroid" }
 io-mcarle = { module = "io.mcarle:io.mcarle", version.ref = "ioMcarle" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -37,6 +45,8 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 dagger = { group = "com.google.dagger", name = "dagger", version.ref = "dagger" }
+room-ktx = { module = "andoidx.room:room-ktx", version.ref = "roomKtx" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

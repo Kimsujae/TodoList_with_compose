@@ -15,14 +15,20 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-
+        multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
     }
-
+    applicationVariants.all {
+        kotlin.sourceSets{
+            getByName(name){
+                kotlin.srcDir("build/generated/ksp/$name/kotlin")
+            }
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -63,6 +69,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.appcompat)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -72,14 +79,21 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation("androidx.room:room-runtime:2.6.1")
-    annotationProcessor("androidx.room:room-compiler:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
+    annotationProcessor("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+
+//    implementation(libs.room.ktx)
+//    implementation("androidx.room:room-runtime:2.6.1")
+//    annotationProcessor("androidx.room:room-compiler:2.6.1")
+//    ksp("androidx.room:room-compiler:2.6.1")
     //ksp(libs.io.mcarle)
     //hilt for compose latest version
-    implementation("com.google.dagger:hilt-android:2.46.1")
-    ksp("com.google.dagger:hilt-android-compiler:2.46.1")
-    annotationProcessor("com.google.dagger:hilt-compiler:2.46.1")
+    implementation(libs.hilt.android.v250)
+    ksp(libs.hilt.android.compiler.v250) // Hilt KSP 컴파일러
+    implementation(libs.androidx.hilt.navigation.compose)
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
 }
