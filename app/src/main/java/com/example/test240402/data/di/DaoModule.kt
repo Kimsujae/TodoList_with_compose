@@ -13,5 +13,5 @@ object DaoModule {
 
     @Singleton
     @Provides
-    fun providesContentDao(appDatabase: AppDatabase)=appDatabase.contentDao()
+    fun providesContentDao(appDatabase: AppDatabase) = appDatabase.contentDao()
 }

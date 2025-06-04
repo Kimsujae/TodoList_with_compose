@@ -1,8 +1,15 @@
 package com.example.test240402.repository
 
-import com.example.test240402.ContentEntity
+import com.example.test240402.model.ContentEntity
+import kotlinx.coroutines.flow.Flow
 
 interface ContentRepository {
 
-    suspend fun insert(item:ContentEntity)
+    fun loadList(): Flow<List<ContentEntity>>
+
+    suspend fun insert(item: ContentEntity)
+
+    suspend fun delete(item: ContentEntity)
+
+    suspend fun modify(item: ContentEntity)
 }

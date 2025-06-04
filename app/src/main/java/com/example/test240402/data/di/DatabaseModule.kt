@@ -13,12 +13,15 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
+
     @Provides
     @Singleton
     fun providesDataBase(@ApplicationContext context: Context):AppDatabase{
+//        Log.d("데이터베이스생성","생성완료")
         return Room.databaseBuilder(context,AppDatabase::class.java,"todo.db")
             .fallbackToDestructiveMigration()
             .build()
+
 
     }
 }
