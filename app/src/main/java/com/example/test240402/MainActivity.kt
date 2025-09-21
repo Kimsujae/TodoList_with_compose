@@ -1,6 +1,8 @@
 package com.example.test240402
 
 import android.R
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
@@ -8,7 +10,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -122,7 +124,7 @@ fun MainAndInputScreen(navController: NavController) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
 fun MainView(navController: NavController) {
@@ -140,14 +142,18 @@ fun MainView(navController: NavController) {
     val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
         topBar = {
-            Text(
-                text = "Todo List",
-                color = Color.Black,
-                fontSize = 20.sp,
-                modifier = Modifier
-                    .background(color = TopAppbar)
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Todo List",
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
+                ,colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer, // 예시 M3 색상
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -173,7 +179,7 @@ fun MainView(navController: NavController) {
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .background(color = Color.White)
+                .background(color = MaterialTheme.colorScheme.background)
         ) {
 //            Button(onClick = { navController.navigate("InputView") }) {
 //                Text(text = "go to Input")
@@ -247,6 +253,7 @@ fun MainView(navController: NavController) {
 }
 
 //@HiltViewModel
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InputView(navController: NavController) {
 
@@ -258,14 +265,18 @@ fun InputView(navController: NavController) {
         remember { mutableStateOf(viewModel.memo.value?.toString() ?: "") }
 
     Scaffold(topBar = {
-        Text(
-            text = "Todo List",
-            color = Color.Black,
-            fontSize = 20.sp,
-            modifier = Modifier
-                .background(color = TopAppbar)
-                .fillMaxWidth(),
-            textAlign = TextAlign.Center
+        TopAppBar(
+            title = {
+                Text(
+                    text = "Todo List",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+            ,colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer, // 예시 M3 색상
+                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            )
         )
     }) { innerPadding ->
         Box(
