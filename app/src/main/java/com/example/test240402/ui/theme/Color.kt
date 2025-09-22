@@ -11,3 +11,5 @@ val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 val Todo = Color(0xFF7DF9FF)
 val TopAppbar =Color(0xFFE76993)
+val TextColor_pastel = Color(0xFF424242)//진한 회색
+val Icon_button_pastel = Color(0xFFD1C4E9)//진한 회색
