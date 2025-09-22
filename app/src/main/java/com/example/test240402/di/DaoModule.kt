@@ -1,4 +1,4 @@
-package com.example.test240402.data.di
+package com.example.test240402.di
 
 import com.example.test240402.data.AppDatabase
 import dagger.Module
@@ -13,5 +13,5 @@ object DaoModule {
 
     @Singleton
     @Provides
-    fun providesContentDao(appDatabase: AppDatabase) = appDatabase.contentDao()
+    fun providesContentDao(appDatabase: AppDatabase) = appDatabase.todoDao()
 }

@@ -1,4 +1,4 @@
-package com.example.test240402.data.di
+package com.example.test240402.di
 
 import android.content.Context
 import androidx.room.Room

@@ -19,4 +19,4 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
--keep class com.example.test240402.MainActivity { *; }
+-keep class com.example.test240402.presentation.ui.MainActivity { *; }

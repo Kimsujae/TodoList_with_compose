@@ -1,6 +1,5 @@
-package com.example.test240402
+package com.example.test240402.presentation.ui
 
-import android.R
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import android.annotation.SuppressLint
@@ -61,9 +60,10 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.test240402.presentation.viewmodel.InputViewModel
+import com.example.test240402.presentation.viewmodel.MainViewModel
 import com.example.test240402.ui.theme.Test240402Theme
 import com.example.test240402.ui.theme.Todo
-import com.example.test240402.ui.theme.TopAppbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -130,7 +130,8 @@ fun MainAndInputScreen(navController: NavController) {
 fun MainView(navController: NavController) {
     val scope = rememberCoroutineScope()
     val viewModel: MainViewModel = hiltViewModel()
-    val contentList by viewModel.contentList.collectAsState()
+
+    val contentList by viewModel.todoList.collectAsState()
     val showContent = remember { mutableStateOf(false) } // 데이터 표시 여부 상태
     LaunchedEffect(contentList) {
         // contentList가 업데이트될 때마다
@@ -138,7 +139,7 @@ fun MainView(navController: NavController) {
         delay(300) // 짧은 딜레이
         showContent.value = true  // 데이터 표시
     }
-    Log.d("데이터", "${viewModel.contentList.value}")
+    Log.d("데이터", "${contentList}")
     val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
         topBar = {
@@ -186,7 +187,7 @@ fun MainView(navController: NavController) {
 //            }
             LazyColumn() {
 //                Log.d("데이터확인", "${viewModel.contentList.value}\n,${viewModel}")
-                if (viewModel.contentList.value.isNotEmpty()) {
+                if (contentList.isNotEmpty()) {
                     items(contentList.size) {
                         Row(
                             Modifier
@@ -240,7 +241,7 @@ fun MainView(navController: NavController) {
                     }
                 } else if (showContent.value && contentList.isEmpty()) {
                     item {
-                        Text(text = "데이터가 없습니다.${viewModel.contentList.value.size}")
+                        Text(text = "데이터가 없습니다.${contentList.size}")
                     }
                 } else {
                     //
@@ -260,9 +261,9 @@ fun InputView(navController: NavController) {
     val viewModel: InputViewModel = hiltViewModel()
 //    viewModel.initData(item = viewModel.item ?: ContentEntity(content = "", memo = ""))
     var content: MutableState<String> =
-        remember { mutableStateOf(viewModel.content.value?.toString() ?: "") }
+        remember { mutableStateOf(viewModel.content.value.toString() ) }
     var memo: MutableState<String> =
-        remember { mutableStateOf(viewModel.memo.value?.toString() ?: "") }
+        remember { mutableStateOf(viewModel.memo.value.toString() ) }
 
     Scaffold(topBar = {
         TopAppBar(
