@@ -1,5 +1,6 @@
 package com.example.test240402.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.test240402.domain.model.TodoItem
@@ -42,6 +43,7 @@ class MainViewModel @Inject constructor(
     )
     fun deleteItem(item: TodoItem){
         viewModelScope.launch {
+            Log.d("MainViewModel", "deleteItem called for item: ${item.content}")
             deleteTodoUseCase(item)
         }
     }

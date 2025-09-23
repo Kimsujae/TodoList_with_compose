@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,13 +20,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -73,6 +79,7 @@ import com.example.test240402.ui.theme.Icon_button_pastel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.example.test240402.presentation.ui.TodoItemRow
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -140,25 +147,31 @@ fun MainView(navController: NavController) {
     val contentList by viewModel.todoList.collectAsState()
     val showContent = remember { mutableStateOf(false) } // 데이터 표시 여부 상태
 
-    val showDeleteDialog = remember { mutableStateOf(false) }
-    val showEditDialog = remember { mutableStateOf(false) }
-    val itemToDelete = remember { mutableStateOf<TodoItem?>(null) }
-    val itemToEdit = remember { mutableStateOf<TodoItem?>(null) }
+    // --- 삭제 관련 상태 ---
+    var itemToDelete: TodoItem? by remember { mutableStateOf(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
-    var editTextContent by remember(itemToEdit.value) {
-        mutableStateOf(itemToEdit.value?.content ?: "")
+    // --- 수정 관련 상태 ---
+    var itemToEdit: TodoItem? by remember { mutableStateOf(null) }
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    // 수정 다이얼로그용 텍스트 필드 상태 (itemToEdit이 변경될 때 업데이트)
+    var editTextContent by remember(itemToEdit) {
+        mutableStateOf(itemToEdit?.content ?: "")
     }
-    var editTextMemo: String? by remember(itemToEdit.value) {
-        mutableStateOf(itemToEdit.value?.memo ?: "")
+    // editTextMemo는 nullable String이므로, String? 타입으로 유지
+    var editTextMemo: String by remember(itemToEdit) { // null일 경우 빈 문자열로 초기화
+        mutableStateOf(itemToEdit?.memo ?: "")
     }
+
     LaunchedEffect(contentList) {
-        // contentList가 업데이트될 때마다
-        showContent.value = false // 데이터 숨김
-        delay(300) // 짧은 딜레이
-        showContent.value = true  // 데이터 표시
+        showContent.value = false
+        delay(300)
+        showContent.value = true
     }
-    Log.d("데이터", "${contentList}")
+    Log.d("데이터", "ContentList in MainView: $contentList") // 로그 메시지 명확화
     val snackbarHostState = remember { SnackbarHostState() }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -168,9 +181,9 @@ fun MainView(navController: NavController) {
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
-                }
-                ,colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer, // 예시 M3 색상
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
@@ -179,129 +192,116 @@ fun MainView(navController: NavController) {
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 text = { Text(text = "add") },
-                icon = { Icon(Icons.Filled.Add, contentDescription = "") },
+                icon = { Icon(Icons.Filled.Add, contentDescription = "새로운 Todo 추가") }, // contentDescription 추가
                 onClick = {
-                    scope.launch {
-                        val result = snackbarHostState.showSnackbar(
-                            "todo리스트를 작성하시겠습니까?", "이동", duration = SnackbarDuration.Indefinite
-                        )
-                        navController.navigate("InputView")
-                        when (result) {
-                            SnackbarResult.ActionPerformed -> {}
-                            SnackbarResult.Dismissed -> {}
-                        }
-
-                    }
-                })
-        }) { paddingValues ->
+                    // 스낵바를 통한 네비게이션은 UX적으로 고려 필요, 여기서는 직접 네비게이션으로 변경 가능
+                    // scope.launch {
+                    //     val result = snackbarHostState.showSnackbar(
+                    //         "todo리스트를 작성하시겠습니까?", "이동", duration = SnackbarDuration.Indefinite
+                    //     )
+                    //     if (result == SnackbarResult.ActionPerformed) {
+                    //         navController.navigate("InputView")
+                    //     }
+                    // }
+                    navController.navigate("InputView") // 직접 네비게이션
+                }
+            )
+        }
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
                 .background(color = MaterialTheme.colorScheme.background)
         ) {
-//            Button(onClick = { navController.navigate("InputView") }) {
-//                Text(text = "go to Input")
-//            }
-            LazyColumn() {
-//                Log.d("데이터확인", "${viewModel.contentList.value}\n,${viewModel}")
-                if (contentList.isNotEmpty()) {
-                    items(contentList.size) { index->
-                        val currentItem  =contentList[index]
-                        Row(
-                            Modifier
-                                .background(color = Todo)
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    onClick = {},
-                                    onLongClick = {
-                                        scope.launch {
-//                                            val result = snackbarHostState.showSnackbar(
-//                                                "해당 todo 리스트를 삭제 하시겠습니까?",
-//                                                "삭제",
-//                                                duration = SnackbarDuration.Indefinite
-//                                            )
-//                                            viewModel.deleteItem(contentList[it])
-//                                            when (result) {
-//                                                SnackbarResult.Dismissed -> {}
-//                                                SnackbarResult.ActionPerformed -> {}
-//                                            }
-                                            itemToDelete.value=currentItem
-                                            showDeleteDialog.value = true
-
-                                        }
-                                    }).padding(8.dp),verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = contentList[index].isDone,
-                                onCheckedChange = { checked ->
-                                    viewModel.updateItem(currentItem.copy(isDone = checked))
-                                })
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "할일: " + currentItem.content,
-                                    color = Color.Red,
-                                    fontStyle = FontStyle.Italic,
-                                    fontWeight = FontWeight(1),
-                                    fontSize = 16.sp
-                                )
-                                currentItem.memo?.let { memo->
-                                    Text(
-                                        text = "메모: " + currentItem.memo,
-                                        color = Color.Blue,
-                                        fontSize = 12.sp
-                                    )
-                                }
+            if (contentList.isEmpty() && showContent.value) { // 조건 명확화
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = "데이터가 없습니다. 추가해주세요!") // 사용자 안내 메시지 개선
+                }
+            } else if (contentList.isNotEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(), // LazyColumn이 전체 공간 차지하도록
+                    contentPadding = PaddingValues(vertical = 8.dp) // 리스트 상하 패딩
+                ) {
+                    items(
+                        items = contentList, // items 파라미터 명시
+                        key = { todoItem -> todoItem.id } // 고유 ID가 있다면 key로 사용 (성능 향상)
+                    ) { currentItem ->
+                        TodoItemRow(
+                            currentItem = currentItem,
+                            onUpdateItem = { updatedItem ->
+                                Log.d("MainView", "onUpdateItem for ${updatedItem.content}, isDone: ${updatedItem.isDone}")
+                                viewModel.updateItem(updatedItem)
+                            },
+                            // --- 콜백 함수 전달 방식으로 변경 ---
+                            onRequestDeleteItem = { todoItemFromRow ->
+                                Log.d("MainView", "onRequestDeleteItem CALLED from Row for: ${todoItemFromRow.content}")
+                                itemToDelete = todoItemFromRow      // MainView의 상태 업데이트
+                                showDeleteDialog = true             // MainView의 상태 업데이트
+                                Log.d("MainView", "itemToDelete set to: ${itemToDelete?.content}, showDeleteDialog set to: $showDeleteDialog")
+                            },
+                            onRequestEditItem = { todoItemFromRow ->
+                                Log.d("MainView", "onRequestEditItem CALLED from Row for: ${todoItemFromRow.content}")
+                                itemToEdit = todoItemFromRow        // MainView의 상태 업데이트
+                                // editTextContent와 editTextMemo는 remember(itemToEdit)에 의해 자동 업데이트됩니다.
+                                showEditDialog = true               // MainView의 상태 업데이트
+                                Log.d("MainView", "itemToEdit set to: ${itemToEdit?.content}, showEditDialog set to: $showEditDialog")
                             }
-                            IconButton(onClick = {
-                                itemToEdit.value = currentItem
-                                editTextContent = currentItem.content
-                                editTextMemo =currentItem.memo
-                                showEditDialog.value = true
-                            }, Modifier.background(color = Icon_button_pastel),
-                            ) { Icon(Icons.Filled.Edit, contentDescription = "") }
-
+                        )
+                        // 각 아이템 사이에 Divider를 추가하여 구분 (선택 사항)
+                        if (contentList.last() != currentItem) { // 마지막 아이템이 아닐 때만 Divider 표시
+                            Divider(modifier = Modifier.padding(horizontal = 16.dp))
                         }
-
                     }
-                } else if (showContent.value && contentList.isEmpty()) {
-                    item {
-                        Text(text = "데이터가 없습니다.${contentList.size}")
-                    }
-                } else {
-                    //
+                }
+            } else {
+                // 데이터 로딩 중이거나 showContent.value가 false인 경우 (예: 로딩 인디케이터 표시)
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
             }
-            if (showDeleteDialog.value) {
-                AlertDialog(
-                    onDismissRequest = { showDeleteDialog.value = false
-                        itemToDelete.value=null},
-                    title = { Text(text = "삭제 확인") },
-                    text = { Text(text = "${itemToDelete.value?.content ?: ""}를 삭제 하시겠습니까?") },
-                    confirmButton = {Button(
-                        onClick = {
-                            itemToDelete.value?.let { viewModel.deleteItem(it) }
-                            showDeleteDialog.value = false
-                            itemToDelete.value = null
-                        }
-                    ) {
-                        Text("삭제")
-                    }},
-                    dismissButton = {
-                        Button(onClick = {
-                        showDeleteDialog.value = false
-                        itemToDelete.value = null
-                    }) {
-                        Text("취소")
-                    }}
-                )
-            }
-            if (showEditDialog.value && itemToEdit.value != null) {
+
+            // --- 다이얼로그 정의 ---
+            // 삭제 확인 다이얼로그
+            if (showDeleteDialog && itemToDelete != null) {
+                Log.d("MainView", "Delete AlertDialog SHOULD BE VISIBLE for: ${itemToDelete?.content}")
                 AlertDialog(
                     onDismissRequest = {
-                        showEditDialog.value = false
-                        itemToEdit.value = null
+                        Log.d("MainView", "Delete Dialog onDismissRequest")
+                        showDeleteDialog = false
+                        itemToDelete = null // 다이얼로그 닫힐 때 선택된 아이템 초기화
+                    },
+                    title = { Text("삭제 확인") },
+                    text = { Text("정말로 '${itemToDelete?.content}' 항목을 삭제하시겠습니까?") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                Log.d("MainView", "Delete Dialog CONFIRM clicked for: ${itemToDelete?.content}")
+                                itemToDelete?.let { viewModel.deleteItem(it) }
+                                showDeleteDialog = false
+                                itemToDelete = null
+                                scope.launch { snackbarHostState.showSnackbar("삭제되었습니다.") }
+                            }
+                        ) { Text("삭제") }
+                    },
+                    dismissButton = {
+                        Button(onClick = {
+                            Log.d("MainView", "Delete Dialog DISMISS clicked")
+                            showDeleteDialog = false
+                            itemToDelete = null
+                        }) { Text("취소") }
+                    }
+                )
+            }
+
+            // 수정 다이얼로그
+            if (showEditDialog && itemToEdit != null) {
+                Log.d("MainView", "Edit AlertDialog SHOULD BE VISIBLE for: ${itemToEdit?.content}")
+                AlertDialog(
+                    onDismissRequest = {
+                        Log.d("MainView", "Edit Dialog onDismissRequest")
+                        showEditDialog = false
+                        itemToEdit = null // 다이얼로그 닫힐 때 선택된 아이템 초기화
                     },
                     title = { Text("Todo 수정") },
                     text = {
@@ -310,56 +310,49 @@ fun MainView(navController: NavController) {
                                 value = editTextContent,
                                 onValueChange = { editTextContent = it },
                                 label = { Text("할 일") },
+                                singleLine = true, // 할 일은 보통 한 줄
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            editTextMemo?.let { it1 ->
-                                OutlinedTextField(
-                                    value = it1,
-                                    onValueChange = { editTextMemo = it },
-                                    label = { Text("메모 (선택 사항)") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
+                            OutlinedTextField(
+                                value = editTextMemo, // nullable String이므로 직접 사용
+                                onValueChange = { editTextMemo = it },
+                                label = { Text("메모 (선택 사항)") },
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 3 // 메모는 여러 줄 가능
+                            )
                         }
                     },
                     confirmButton = {
                         Button(
                             onClick = {
-                                itemToEdit.value?.let { currentTodo ->
+                                itemToEdit?.let { currentTodo ->
+                                    Log.d("MainView", "Edit Dialog CONFIRM clicked for: ${currentTodo.content}")
                                     val updatedTodo = currentTodo.copy(
                                         content = editTextContent,
-                                        memo = editTextMemo?.ifBlank { null } // 비어있으면 null로 저장
+                                        memo = editTextMemo.ifBlank { null } // 비어있으면 null로 저장
                                     )
                                     viewModel.updateItem(updatedTodo)
                                 }
-                                showEditDialog.value = false
-                                itemToEdit.value = null
+                                showEditDialog = false
+                                itemToEdit = null
+                                scope.launch { snackbarHostState.showSnackbar("수정되었습니다.") }
                             },
-                            // 할 일이 비어있지 않을 때만 활성화
-                            enabled = editTextContent.isNotBlank()
-                        ) {
-                            Text("수정")
-                        }
+                            enabled = editTextContent.isNotBlank() // 할 일이 비어있지 않을 때만 활성화
+                        ) { Text("수정") }
                     },
                     dismissButton = {
                         Button(onClick = {
-                            showEditDialog.value = false
-                            itemToEdit.value = null
-                        }) {
-                            Text("취소")
-                        }
+                            Log.d("MainView", "Edit Dialog DISMISS clicked")
+                            showEditDialog = false
+                            itemToEdit = null
+                        }) { Text("취소") }
                     }
                 )
             }
-
-
-
-        }
-
-
-    }
-}
+        } // Box 끝
+    } // Scaffold의 content 람다 끝
+} // MainView 끝
 
 //@HiltViewModel
 @OptIn(ExperimentalMaterial3Api::class)
