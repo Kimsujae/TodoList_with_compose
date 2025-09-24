@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +25,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -360,12 +363,14 @@ fun MainView(navController: NavController) {
 fun InputView(navController: NavController) {
 
     val viewModel: InputViewModel = hiltViewModel()
-//    viewModel.initData(item = viewModel.item ?: ContentEntity(content = "", memo = ""))
-    var content: MutableState<String> =
-        remember { mutableStateOf(viewModel.content.value.toString() ) }
-    var memo: MutableState<String> =
-        remember { mutableStateOf(viewModel.memo.value.toString() ) }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
+
+
+//    viewModel.initData(item = viewModel.item ?: ContentEntity(content = "", memo = ""))
+    val content by viewModel.content.collectAsState()
+    val memo by viewModel.memo.collectAsState()
     Scaffold(topBar = {
         TopAppBar(
             title = {
@@ -374,68 +379,125 @@ fun InputView(navController: NavController) {
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
-            }
-            ,colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer, // 예시 M3 색상
-                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            },
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Filled.ArrowBack, contentDescription = "뒤로가기")
+                }
+            },
+            actions = {
+                IconButton(
+                    onClick = {
+                        if (content.isNotBlank()) {
+                            viewModel.insertData()
+                            navController.popBackStack()
+                        }else{
+                            scope.launch { snackbarHostState.showSnackbar("할일을 입력해주세요.") }
+                        }
+
+                    },enabled = content.isNotBlank()
+                ) {
+                    Icon(Icons.Filled.Done, contentDescription = "저장")
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
             )
+
         )
-    }) { innerPadding ->
-        Box(
+    }, snackbarHost = {SnackbarHost(hostState = snackbarHostState)}
+
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(color = Color.White)
+                .background(color = MaterialTheme.colorScheme.background)
+                .padding(16.dp)
         ) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .padding(12.dp)
-            ) {
-//            Button(onClick = { navController.popBackStack() }) {
-//                Text(text = "go to first")
-//            }
-                Spacer(modifier = Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = content.value,
-//                value = viewModel.content.value?.let { if (it.isEmpty()) "" else it.toString() },
-                    onValueChange = {
-                        content.value = it
-                        viewModel.content.value = it
-                    },
-                    label = { Text(text = "할일", color = Color.Red) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .align(alignment = Alignment.CenterHorizontally),
-                    placeholder = { Text(text = "내용", color = Color.LightGray) })
+            OutlinedTextField(
+                value = content,
+                onValueChange = { viewModel.updateContent(it) }, // ViewModel 함수 호출
+                label = { Text("할 일") },
+                placeholder = { Text("내용을 입력하세요") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                Spacer(modifier = Modifier.height(10.dp))
-                TextField(
-                    value = memo.value,
-                    onValueChange = {
-                        memo.value = it
-                        viewModel.memo.value = it
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .align(alignment = Alignment.CenterHorizontally),
-                    placeholder = { Text(text = "메모", color = Color.LightGray) })
+            Spacer(modifier = Modifier.height(16.dp))
 
-            }
-            Button(
+            OutlinedTextField(
+                value = memo, // memo가 null을 허용하지 않는 String이므로 직접 사용
+                onValueChange = { viewModel.updateMemo(it) }, // ViewModel 함수 호출
+                label = { Text("메모 (선택 사항)") },
+                placeholder = { Text("추가 메모를 입력하세요") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .align(Alignment.BottomCenter), onClick = {
-                    Log.d("라이브데이터확인", "제목: ${viewModel.content.value}, 메모: ${viewModel.memo.value}")
-                    viewModel.insertData()
-                    navController.popBackStack()
-                }) {
-                Text(text = "입력완료")
-            }
-
+                    .defaultMinSize(minHeight = 120.dp),
+                maxLines = 5
+            )
         }
+
+
+
+//        Box(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .padding(innerPadding)
+//                .background(color = Color.White)
+//        ) {
+//            Column(
+//                Modifier
+//                    .fillMaxSize()
+//                    .padding(12.dp)
+//            ) {
+////            Button(onClick = { navController.popBackStack() }) {
+////                Text(text = "go to first")
+////            }
+//                Spacer(modifier = Modifier.height(10.dp))
+//                OutlinedTextField(
+//                    value = content.value,
+////                value = viewModel.content.value?.let { if (it.isEmpty()) "" else it.toString() },
+//                    onValueChange = {
+//                        content.value = it
+//                        viewModel.content.value = it
+//                    },
+//                    label = { Text(text = "할일", color = Color.Red) },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .clip(RoundedCornerShape(6.dp))
+//                        .align(alignment = Alignment.CenterHorizontally),
+//                    placeholder = { Text(text = "내용", color = Color.LightGray) })
+//
+//                Spacer(modifier = Modifier.height(10.dp))
+//                TextField(
+//                    value = memo.value,
+//                    onValueChange = {
+//                        memo.value = it
+//                        viewModel.memo.value = it
+//                    },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .clip(RoundedCornerShape(16.dp))
+//                        .align(alignment = Alignment.CenterHorizontally),
+//                    placeholder = { Text(text = "메모", color = Color.LightGray) })
+//
+//            }
+//            Button(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .align(Alignment.BottomCenter), onClick = {
+//                    Log.d("라이브데이터확인", "제목: ${viewModel.content.value}, 메모: ${viewModel.memo.value}")
+//                    viewModel.insertData()
+//                    navController.popBackStack()
+//                }) {
+//                Text(text = "입력완료")
+//            }
+//
+//        }
     }
 
 }
