@@ -9,5 +9,8 @@ data class TodoEntity(
     val id: Int = 0,
     val content: String,
     val memo: String? = null,
-    val isDone: Boolean = false
+    val isDone: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis(),
+    val alarmTime: Long? = null,
+    val isAlarmEnabled: Boolean = false
 )

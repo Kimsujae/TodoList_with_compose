@@ -46,4 +46,7 @@ interface TodoDao {
     // 예:
     // @Query("SELECT * FROM todo_items WHERE id = :id")
     // suspend fun getTodoById(id: Int): TodoEntity?
+    // --- 새로운 쿼리 예시 (재부팅 시 알람 재등록 등에 사용 가능) ---
+    @Query("SELECT * FROM todo_items WHERE isAlarmEnabled = 1 AND alarmTime IS NOT NULL AND alarmTime > :currentTimeMillis")
+    suspend fun getActiveScheduledAlarms(currentTimeMillis: Long): List<TodoEntity>
 }

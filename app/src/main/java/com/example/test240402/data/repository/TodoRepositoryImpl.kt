@@ -3,8 +3,8 @@ package com.example.test240402.data.repository // data 모듈 내 패키지
 //import com.example.test240402.data.dao.ContentDao
 import android.util.Log
 import com.example.test240402.data.datasource.local.TodoDao
-import com.example.test240402.data.mapper.toDomain // Domain 모델로 매핑하는 확장 함수
-import com.example.test240402.data.mapper.toEntity // Room 엔티티로 매핑하는 확장 함수
+import com.example.test240402.data.mapper.TodoMapper.toDomain // Domain 모델로 매핑하는 확장 함수
+import com.example.test240402.data.mapper.TodoMapper.toEntity // Room 엔티티로 매핑하는 확장 함수
 import com.example.test240402.domain.model.TodoItem as DomainTodoItem // Domain 모델 import alias
 import com.example.test240402.domain.repository.TodoRepository
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +44,10 @@ class TodoRepositoryImpl @Inject constructor(
 
     override suspend fun deleteTodo(todoItem: DomainTodoItem) {
         todoDao.deleteTodo(todoItem.toEntity())
+    }
+    // 재부팅 시 알람 재등록을 위한 메소드 (새로운 DAO 메소드 사용)
+    override suspend fun getActiveScheduledAlarms(currentTimeMillis: Long): List<DomainTodoItem> {
+        return todoDao.getActiveScheduledAlarms(currentTimeMillis).map { it.toDomain() }
     }
 }
             

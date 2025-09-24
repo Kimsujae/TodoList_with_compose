@@ -34,6 +34,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -47,8 +49,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -64,6 +71,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -83,6 +91,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.example.test240402.presentation.ui.TodoItemRow
+import java.text.SimpleDateFormat
+import java.util.*
+import java.util.Date
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -366,12 +377,19 @@ fun InputView(navController: NavController) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var selectedAlarmTimeMillis by remember { mutableStateOf<Long?>(null) } // 초기값은 null (설정 안 함)
+    var isAlarmEnabled by remember { mutableStateOf(false) }               // 초기값은 false (비활성화)
 
+    val currentCalendar = Calendar.getInstance()
 
 //    viewModel.initData(item = viewModel.item ?: ContentEntity(content = "", memo = ""))
     val content by viewModel.content.collectAsState()
     val memo by viewModel.memo.collectAsState()
-    Scaffold(topBar = {
+    Scaffold(
+
+        topBar = {
         TopAppBar(
             title = {
                 Text(
@@ -380,26 +398,26 @@ fun InputView(navController: NavController) {
                     textAlign = TextAlign.Center
                 )
             },
-            navigationIcon = {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "뒤로가기")
-                }
-            },
-            actions = {
-                IconButton(
-                    onClick = {
-                        if (content.isNotBlank()) {
-                            viewModel.insertData()
-                            navController.popBackStack()
-                        }else{
-                            scope.launch { snackbarHostState.showSnackbar("할일을 입력해주세요.") }
-                        }
-
-                    },enabled = content.isNotBlank()
-                ) {
-                    Icon(Icons.Filled.Done, contentDescription = "저장")
-                }
-            },
+//            navigationIcon = {
+//                IconButton(onClick = { navController.popBackStack() }) {
+//                    Icon(Icons.Filled.ArrowBack, contentDescription = "뒤로가기")
+//                }
+//            },
+//            actions = {
+//                IconButton(
+//                    onClick = {
+//                        if (content.isNotBlank()) {
+//                            viewModel.insertData()
+//                            navController.popBackStack()
+//                        }else{
+//                            scope.launch { snackbarHostState.showSnackbar("할일을 입력해주세요.") }
+//                        }
+//
+//                    },enabled = content.isNotBlank()
+//                ) {
+//                    Icon(Icons.Filled.Done, contentDescription = "저장")
+//                }
+//            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -439,6 +457,159 @@ fun InputView(navController: NavController) {
                     .defaultMinSize(minHeight = 120.dp),
                 maxLines = 5
             )
+            Text("알람 설정 ", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier= Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    // 알람이 이미 활성화되어 있고 시간이 설정되어 있다면, 바로 시간 선택기로 갈 수도 있음
+                    // 여기서는 항상 날짜부터 선택하도록 단순화
+                    showDatePicker = true
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val buttonText = if (selectedAlarmTimeMillis != null && isAlarmEnabled) {
+                    "알람: ${SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault()).format(
+                        Date(
+                            selectedAlarmTimeMillis!!
+                        )
+                    )}"
+                } else {
+                    "알람 시간 설정하기"
+                }
+                Text(buttonText)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("알람 활성화", modifier = Modifier.weight(1f))
+                Switch(
+                    checked = isAlarmEnabled,
+                    onCheckedChange = { checked ->
+                        isAlarmEnabled = checked
+                        if (!checked) {
+                            // 알람을 비활성화하면 선택된 시간도 초기화 (사용자 경험에 따라 결정)
+                            selectedAlarmTimeMillis = null
+                        }
+                    },
+                    // 시간이 먼저 설정되어야만 스위치를 활성화할지, 아니면 항상 활성화할지 결정
+                    // enabled = selectedAlarmTimeMillis != null (시간 설정 후 활성화)
+                    // 또는 항상 활성화하고, 시간이 없는데 켜면 시간 설정 유도
+                )
+            }
+            if (showDatePicker) {
+                val datePickerState = rememberDatePickerState( // Material 3 DatePickerState
+                    initialSelectedDateMillis = selectedAlarmTimeMillis ?: System.currentTimeMillis()
+                )
+                DatePickerDialog(
+                    onDismissRequest = { showDatePicker = false },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDatePicker = false
+                                datePickerState.selectedDateMillis?.let {
+                                    // 사용자가 날짜만 선택하고 시간을 아직 선택하지 않았을 수 있으므로,
+                                    // 선택된 날짜의 0시 0분으로 우선 설정하거나,
+                                    // 바로 시간 선택기를 띄워 시간을 마저 받도록 함.
+                                    val cal = Calendar.getInstance()
+                                    cal.timeInMillis = it
+                                    // 기존에 시간이 설정되어 있었다면 그 시간 유지, 아니면 정오 등으로 초기화
+                                    val currentHour = if (selectedAlarmTimeMillis != null) Calendar.getInstance().apply { timeInMillis = selectedAlarmTimeMillis!! }.get(Calendar.HOUR_OF_DAY) else 12
+                                    val currentMinute = if (selectedAlarmTimeMillis != null) Calendar.getInstance().apply { timeInMillis = selectedAlarmTimeMillis!! }.get(Calendar.MINUTE) else 0
+                                    cal.set(Calendar.HOUR_OF_DAY, currentHour)
+                                    cal.set(Calendar.MINUTE, currentMinute)
+                                    cal.set(Calendar.SECOND, 0)
+                                    cal.set(Calendar.MILLISECOND, 0)
+                                    selectedAlarmTimeMillis = cal.timeInMillis
+                                    showTimePicker = true // 날짜 선택 후 바로 시간 선택기 표시
+                                }
+                            }
+                        ) { Text("확인") }
+                    },
+                    dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("취소") } }
+                ) {
+                    DatePicker(state = datePickerState)
+                }
+            }
+
+            if (showTimePicker) {
+                val initialHour = if (selectedAlarmTimeMillis != null) {
+                    Calendar.getInstance().apply { timeInMillis = selectedAlarmTimeMillis!! }.get(Calendar.HOUR_OF_DAY)
+                } else {
+                    currentCalendar.get(Calendar.HOUR_OF_DAY)
+                }
+                val initialMinute = if (selectedAlarmTimeMillis != null) {
+                    Calendar.getInstance().apply { timeInMillis = selectedAlarmTimeMillis!! }.get(Calendar.MINUTE)
+                } else {
+                    currentCalendar.get(Calendar.MINUTE)
+                }
+
+                val timePickerState = rememberTimePickerState(
+                    initialHour = initialHour,
+                    initialMinute = initialMinute,
+                    is24Hour = true // 24시간 형식 사용 여부
+                )
+                AlertDialog(
+                    onDismissRequest = { showTimePicker = false },
+                    title = { Text("알람 시간 선택") },
+                    text = {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            TimePicker(state = timePickerState)
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                // selectedAlarmTimeMillis에 날짜 정보가 이미 있어야 함 (DatePicker에서 설정됨)
+                                val cal = Calendar.getInstance()
+                                if (selectedAlarmTimeMillis != null) {
+                                    cal.timeInMillis = selectedAlarmTimeMillis!! // 기존 날짜 유지
+                                } else {
+                                    // 혹시 날짜가 설정 안된 예외적 상황 (오늘 날짜로 기본 설정)
+                                    cal.timeInMillis = System.currentTimeMillis()
+                                }
+                                cal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                                cal.set(Calendar.MINUTE, timePickerState.minute)
+                                cal.set(Calendar.SECOND, 0)
+                                cal.set(Calendar.MILLISECOND, 0)
+
+                                selectedAlarmTimeMillis = cal.timeInMillis
+                                isAlarmEnabled = true // 시간을 설정하면 알람을 자동으로 활성화 (선택 사항)
+                                showTimePicker = false
+                                Log.d("InputView", "Selected Alarm DateTime: ${Date(selectedAlarmTimeMillis!!)}")
+                            }
+                        ) { Text("확인") }
+                    },
+                    dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("취소") } }
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f)) // 저장 버튼을 하단으로 밀기
+
+            Button(
+                onClick = {
+                    if (content.isNotBlank()) {
+                        // ViewModel의 insertData 함수에 알람 정보도 함께 전달
+                        viewModel.insertData( // ViewModel의 insertData 시그니처 변경 필요
+                            content = content,
+                            memo = memo,
+                            alarmTime = if(isAlarmEnabled) selectedAlarmTimeMillis else null,
+                            isAlarmEnabled = isAlarmEnabled
+                        )
+                        navController.popBackStack()
+                    } else {
+                        scope.launch { snackbarHostState.showSnackbar("할 일을 입력해주세요.") }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = content.isNotBlank()
+            ) {
+                Text("저장하기")
+            }
+        }
+
+
         }
 
 
@@ -498,6 +669,5 @@ fun InputView(navController: NavController) {
 //            }
 //
 //        }
-    }
-
 }
+

@@ -19,9 +19,11 @@ object DatabaseModule {
     fun providesDataBase(@ApplicationContext context: Context):AppDatabase{
 //        Log.d("데이터베이스생성","생성완료")
         return Room.databaseBuilder(context,AppDatabase::class.java,"todo.db")
+//            .addMigrations(AppDatabase.MIGRATION_1_2,AppDatabase.MIGRATION_2_3)
+//            .addMigrations(AppDatabase.MIGRATION_1_2)
             .fallbackToDestructiveMigration()
             .build()
-
-
     }
+//    @Provides
+//    fun provideTodoDao(database: AppDatabase) = database.todoDao()
 }

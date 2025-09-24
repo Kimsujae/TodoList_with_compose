@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.test240402.domain.model.TodoItem
 import com.example.test240402.domain.usecase.InsertTodoUseCase
 import com.example.test240402.domain.usecase.UpdateTodoUseCase
+import com.example.test240402.presentation.ui.AlarmScheduler
 //import com.example.test240402.model.ContentEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InputViewModel @Inject constructor(
+    private val alarmScheduler: AlarmScheduler,
     private val insertTodoUseCase: InsertTodoUseCase
 ) : ViewModel() {
     private val _doneEvent = MutableLiveData<Unit>()
@@ -40,7 +42,7 @@ class InputViewModel @Inject constructor(
 //        memo.value = item.memo
 //    }
     fun updateContent(newContent: String) {
-    _content.value = newContent
+        _content.value = newContent
     }
 
     fun updateMemo(newMemo: String) {
@@ -49,19 +51,39 @@ class InputViewModel @Inject constructor(
 
 
 
-    fun insertData() {
-        if (content.value.isNotBlank() ) {
+    fun insertData(
+        content: String, // UI에서 직접 받은 content 값
+        memo: String,    // UI에서 직접 받은 memo 값
+        alarmTime: Long?,
+        isAlarmEnabled: Boolean) {
+        if (content.isNotBlank() ) {
             val newTodo = TodoItem( // id는 Repository 또는 DB에서 자동 생성되도록 할 수 있음
                 content = _content.value,
-                memo = _memo.value.ifEmpty { null }, // 비어있으면 null로
-                isDone = false
+                memo = memo.ifEmpty { null }, // 비어있으면 null로
+                isDone = false,
+                alarmTime = alarmTime,
+                isAlarmEnabled = isAlarmEnabled
             )
             viewModelScope.launch {
                 Log.d("!로그 데이터베이스저장","$newTodo")
                 insertTodoUseCase(newTodo)
+
+
+                if(newTodo.isAlarmEnabled && newTodo.alarmTime!= null){
+                    if(newTodo.alarmTime > System.currentTimeMillis()){
+                        alarmScheduler.schedule(newTodo)
+                    }
+                    else{
+                        //Log.d(Log.d("InputViewModel", "Alarm time is in the past, not scheduling: $newTodo"))
+                    }
+                }else{
+                    //Log.d(Log.d("InputViewModel", "Alarm is disabled or time is null, not scheduling: $newTodo"))
+                }
+
                 _content.value = ""
                 _memo.value = ""
-                // _doneEvent.postValue(Unit) // 또는 tương tự
+
+                // _doneEvent.postValue(Unit)
             }
         }
     }
