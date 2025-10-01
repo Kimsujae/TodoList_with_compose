@@ -13,9 +13,9 @@ interface AlarmScheduler {
     fun cancel(item: TodoItem)
 }
 
-class AlarmSchedulerImpl @Inject constructor (
+class AlarmSchedulerImpl @Inject constructor(
     private val context: Context
-): AlarmScheduler {
+) : AlarmScheduler {
     private val alarmManager = context.getSystemService(AlarmManager::class.java)
 
     override fun schedule(item: TodoItem) {

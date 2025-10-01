@@ -20,9 +20,10 @@ class AlarmReceiver : BroadcastReceiver() {
         private const val CHANNEL_ID = "todo_alarm_channel"
     }
 
-    override fun onReceive(context: Context, intent: Intent) {val todoId = intent.getIntExtra(EXTRA_TODO_ID, -1)
+    override fun onReceive(context: Context, intent: Intent) {
+        val todoId = intent.getIntExtra(EXTRA_TODO_ID, -1)
         val todoContent = intent.getStringExtra(EXTRA_TODO_CONTENT) ?: "할 일이 있습니다!"
-
+        Log.d("AlarmReceiver", "onReceive CALLED! - Time: ${System.currentTimeMillis()}")
         Log.d("AlarmReceiver", "Alarm received for Todo ID: $todoId, Content: $todoContent")
 
         createNotificationChannel(context)
@@ -51,7 +52,8 @@ class AlarmReceiver : BroadcastReceiver() {
             .setAutoCancel(true) // 알림 클릭 시 자동으로 사라지도록
             .build()
 
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         // 알림 ID는 고유해야 함 (여기서도 todoId 사용 가능)
         notificationManager.notify(todoId, notification)
 
