@@ -3,10 +3,12 @@ package com.example.test240402.presentation.ui
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -68,6 +70,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -103,8 +106,12 @@ import java.util.Date
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
 
+
+    private val mainViewModel: MainViewModel by viewModels()
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             Test240402Theme {
@@ -114,12 +121,34 @@ class MainActivity : ComponentActivity() {
                 ) {
 
                     val navController = rememberNavController()
-                    MainAndInputScreen(navController)
+                    MainAndInputScreen(mainViewModel)
 
                 }
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent?.let { handleIntent(intent) }
+        Log.d("MainActivity", "onNewIntent called")
+    }
+    private fun handleIntent(intent: Intent) {
+        if (intent.action == "DISABLE_ALARM_ACTION") {
+            val todoIdToDisable =intent.getLongExtra("ALARM_TODO_ID_TO_DISABLE", -1L)
+            if (todoIdToDisable!= -1L){
+                mainViewModel.disableAlarmForTodoItem(todoIdToDisable)
+
+                // (선택 사항) 인텐트 중복 처리를 방지하기 위해 action을 null로 설정
+                this.intent.action = null
+            }
+
+        }
+
+    }
+
+
+
 }
 
 @Preview(showBackground = true)
@@ -141,12 +170,13 @@ fun GreetingPreview2() {
 }
 
 @Composable
-fun MainAndInputScreen(navController: NavController) {
+fun MainAndInputScreen(mainViewModel: MainViewModel) {
     val navController = rememberNavController()
     NavHost(navController = navController, startDestination = "MainView") {
         composable("MainView") {
             MainView(
-                navController = navController
+                navController = navController,
+                viewModel = mainViewModel
             )
         }
         composable("InputView") {
@@ -161,9 +191,9 @@ fun MainAndInputScreen(navController: NavController) {
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
-fun MainView(navController: NavController) {
+fun MainView(navController: NavController, viewModel: MainViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
-    val viewModel: MainViewModel = hiltViewModel()
+//    val viewModel: MainViewModel = hiltViewModel()
 
     val contentList by viewModel.todoList.collectAsState()
     val showContent = remember { mutableStateOf(false) }
@@ -317,6 +347,60 @@ fun MainView(navController: NavController) {
                     // }
                 )
 
+                val initialDateCalendar = remember(itemToEdit) { // itemToEdit 변경 시 초기화
+                    Calendar.getInstance().apply {
+                        itemToEdit?.alarmTime?.let { timeInMillis = it }
+                    }
+                }
+                var tempSelectedYear by remember(itemToEdit) {
+                    mutableIntStateOf(
+                        initialDateCalendar.get(
+                            Calendar.YEAR
+                        )
+                    )
+                }
+                var tempSelectedMonth by remember(itemToEdit) {
+                    mutableIntStateOf(
+                        initialDateCalendar.get(Calendar.MONTH) + 1
+                    )
+                } // 1-12
+                var tempSelectedDay by remember(itemToEdit) {
+                    mutableIntStateOf(
+                        initialDateCalendar.get(
+                            Calendar.DAY_OF_MONTH
+                        )
+                    )
+                }
+
+                // TimePicker 상태
+                val initialTimeCalendar = remember(itemToEdit) { // itemToEdit 변경 시 초기화
+                    Calendar.getInstance().apply {
+                        itemToEdit?.alarmTime?.let { timeInMillis = it }
+                    }
+                }
+                var tempSelectedHour by remember(itemToEdit) {
+                    mutableIntStateOf(
+                        initialTimeCalendar.get(
+                            Calendar.HOUR_OF_DAY
+                        )
+                    )
+                } // 0-23
+                var tempSelectedMinute by remember(itemToEdit) {
+                    mutableIntStateOf(
+                        initialTimeCalendar.get(Calendar.MINUTE)
+                    )
+                }   // 0-59
+                // --- Custom Picker 들을 위한 임시 상태 변수 끝 ---
+
+                val dateTimeFormatter =
+                    remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+                val snackbarHostState = remember { SnackbarHostState() }
+
+                var customPickerSelectedDateMillis: Long? by remember { mutableStateOf(itemToEdit?.alarmTime) }
+//                var tempSelectedYear by remember { mutableIntStateOf(0) }
+//                var tempSelectedMonth by remember { mutableIntStateOf(0) }
+//                var tempSelectedDay by remember { mutableIntStateOf(0) }
+
                 val calendarForTimePicker = Calendar.getInstance().apply {
                     // DatePicker에서 선택된 날짜가 있으면 그것을 사용, 없으면 초기 날짜(또는 현재) 사용
                     timeInMillis = datePickerState.selectedDateMillis ?: initialSelectedDateMillis
@@ -336,12 +420,13 @@ fun MainView(navController: NavController) {
                     onDismissRequest = {
                         showEditDialog = false
                         itemToEdit = null // 다이얼로그 닫을 때 상태 초기화
-                    }
+                    },
+//                    containerColor = MaterialTheme.colorScheme.surface,
                 ) {
                     Column(
                         modifier = Modifier
                             .background(AlertDialogDefaults.containerColor) // 다이얼로그 배경색과 동일하게
-                            .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 24.dp)
+                            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp)
                             .verticalScroll(rememberScrollState()) // 내용이 길어지면 스크롤
                     ) {
                         Text("Todo 수정", style = MaterialTheme.typography.headlineSmall)
@@ -381,49 +466,115 @@ fun MainView(navController: NavController) {
                         }
 
                         if (editIsAlarmEnabled) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            // 선택된 알람 시간 표시 (선택 사항)
-                            val currentSelectedDateTimeMillis = remember(
-                                datePickerState.selectedDateMillis,
-                                timePickerState.hour,
-                                timePickerState.minute
+//                            Spacer(modifier = Modifier.height(16.dp))
+//                            // 선택된 알람 시간 표시 (선택 사항)
+//                            val currentSelectedDateTimeMillis = remember(
+//                                datePickerState.selectedDateMillis,
+//                                timePickerState.hour,
+//                                timePickerState.minute
+//                            ) {
+//                                datePickerState.selectedDateMillis?.let { dateMillis ->
+//                                    Calendar.getInstance().apply {
+//                                        timeInMillis = dateMillis
+//                                        set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+//                                        set(Calendar.MINUTE, timePickerState.minute)
+//                                    }.timeInMillis
+//                                }
+//                            }
+//                            Text(
+//                                text = "선택된 알람: ${
+//                                    currentSelectedDateTimeMillis?.let {
+//                                        dateTimeFormatter.format(
+//                                            Date(it)
+//                                        )
+//                                    } ?: "시간 미설정"
+//                                }",
+//                                style = MaterialTheme.typography.bodyMedium
+//                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            CustomDropdownDatePicker(
+                                initialDateMillis = itemToEdit?.alarmTime
+                                    ?: System.currentTimeMillis(),
+                                onDateSelected = { year, month, day ->
+                                    // 선택된 년/월/일을 임시 상태에 저장
+                                    tempSelectedYear = year
+                                    tempSelectedMonth = month
+                                    tempSelectedDay = day
+//                                    Log.d("CustomDatePicker", "Date Selected: $year-$month-$day")
+//                                    val calendar = Calendar.getInstance().apply {
+//                                        set(Calendar.YEAR, year)
+//                                        set(Calendar.MONTH, month - 1)
+//                                        set(Calendar.DAY_OF_MONTH, day) }
+//                                    customPickerSelectedDateMillis =calendar.timeInMillis
+//                                    Log.d("CustomDatePicker", "Date Selected: $year-$month-$day, millis: $customPickerSelectedDateMillis")
+                                },
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+//                            DatePicker(
+//                                state = datePickerState,
+//                                modifier = Modifier.fillMaxWidth(),
+//                                title = null, //  { Text("날짜 선택", modifier = Modifier.padding(16.dp)) },
+//                                headline = null //  { datePickerState.selectedDateMillis?.let { Text(SimpleDateFormat("yyyy년 MM월 dd일", Locale.getDefault()).format(Date(it)), modifier = Modifier.padding(start = 16.dp, top=8.dp, bottom=8.dp)) } }
+//                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            CustomDropdownTimePicker(
+                                initialHour = tempSelectedHour, // remember(itemToEdit)으로 초기화된 값 사용
+                                initialMinute = tempSelectedMinute, // remember(itemToEdit)으로 초기화된 값 사용
+                                onTimeSelected = { hour, minute ->
+                                    tempSelectedHour = hour
+                                    tempSelectedMinute = minute
+                                },
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                            val combinedDateTimeMillis = remember(
+                                tempSelectedYear,
+                                tempSelectedMonth,
+                                tempSelectedDay,
+                                tempSelectedHour,
+                                tempSelectedMinute
                             ) {
-                                datePickerState.selectedDateMillis?.let { dateMillis ->
+                                // tempSelectedYear가 초기값(0)이 아니거나, itemToEdit?.alarmTime에 기반한 초기값이 설정되었을 때만 계산
+                                if (tempSelectedYear != initialDateCalendar.get(Calendar.YEAR) || // 뭔가 변경되었거나
+                                    tempSelectedMonth != (initialDateCalendar.get(Calendar.MONTH) + 1) ||
+                                    tempSelectedDay != initialDateCalendar.get(Calendar.DAY_OF_MONTH) ||
+                                    itemToEdit?.alarmTime != null
+                                ) { // 초기 알람이 있었던 경우
                                     Calendar.getInstance().apply {
-                                        timeInMillis = dateMillis
-                                        set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                                        set(Calendar.MINUTE, timePickerState.minute)
+                                        set(Calendar.YEAR, tempSelectedYear)
+                                        set(Calendar.MONTH, tempSelectedMonth - 1)
+                                        set(Calendar.DAY_OF_MONTH, tempSelectedDay)
+                                        set(Calendar.HOUR_OF_DAY, tempSelectedHour)
+                                        set(Calendar.MINUTE, tempSelectedMinute)
+                                        set(Calendar.SECOND, 0)
+                                        set(Calendar.MILLISECOND, 0)
                                     }.timeInMillis
+                                } else {
+                                    null
                                 }
                             }
                             Text(
                                 text = "선택된 알람: ${
-                                    currentSelectedDateTimeMillis?.let {
-                                        dateTimeFormatter.format(
-                                            Date(it)
-                                        )
-                                    } ?: "시간 미설정"
+                                    combinedDateTimeMillis?.let { dateTimeFormatter.format(Date(it)) } ?: "시간 미설정"
                                 }",
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(top = 8.dp)
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
 
-                            DatePicker(
-                                state = datePickerState,
-                                modifier = Modifier.fillMaxWidth(),
-                                title = null, //  { Text("날짜 선택", modifier = Modifier.padding(16.dp)) },
-                                headline = null //  { datePickerState.selectedDateMillis?.let { Text(SimpleDateFormat("yyyy년 MM월 dd일", Locale.getDefault()).format(Date(it)), modifier = Modifier.padding(start = 16.dp, top=8.dp, bottom=8.dp)) } }
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Box(
-                                modifier = Modifier.fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                TimePicker(
-                                    state = timePickerState,
-                                    layoutType = TimePickerLayoutType.Vertical // 또는 Horizontal
-                                )
-                            }
+
+//                            Box(
+//                                modifier = Modifier.fillMaxWidth(),
+//                                contentAlignment = Alignment.Center
+//                            ) {
+////                                TimePicker(
+////                                    state = timePickerState,
+////                                    layoutType = TimePickerLayoutType.Vertical // 또는 Horizontal
+////                                )
+//
+//
+//
+//
+//                            }
                         } else {
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
@@ -432,7 +583,7 @@ fun MainView(navController: NavController) {
                                 modifier = Modifier.align(Alignment.CenterHorizontally)
                             )
                             // 레이아웃 유지를 위해 높이 Spacer (조정 필요)
-                            Spacer(modifier = Modifier.height(250.dp))
+                            Spacer(modifier = Modifier.height(150.dp))
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -451,21 +602,34 @@ fun MainView(navController: NavController) {
                             Button(
                                 onClick = {
                                     val finalAlarmTimeMillis: Long? = if (editIsAlarmEnabled) {
-                                        datePickerState.selectedDateMillis?.let { selectedDate ->
+                                        // tempSelectedYear가 초기값(0)이 아니거나, itemToEdit?.alarmTime에 기반한 초기값이 설정되었을 때만 계산
+                                        if (tempSelectedYear != initialDateCalendar.get(Calendar.YEAR) ||
+                                            tempSelectedMonth != (initialDateCalendar.get(Calendar.MONTH) + 1) ||
+                                            tempSelectedDay != initialDateCalendar.get(Calendar.DAY_OF_MONTH) ||
+                                            tempSelectedHour != initialTimeCalendar.get(Calendar.HOUR_OF_DAY) ||
+                                            tempSelectedMinute != initialTimeCalendar.get(Calendar.MINUTE) ||
+                                            itemToEdit?.alarmTime != null
+                                        ) {
+
                                             val calendar = Calendar.getInstance().apply {
-                                                timeInMillis = selectedDate
-                                                set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                                                set(Calendar.MINUTE, timePickerState.minute)
+                                                set(Calendar.YEAR, tempSelectedYear)
+                                                set(Calendar.MONTH, tempSelectedMonth - 1)
+                                                set(Calendar.DAY_OF_MONTH, tempSelectedDay)
+                                                set(Calendar.HOUR_OF_DAY, tempSelectedHour)
+                                                set(Calendar.MINUTE, tempSelectedMinute)
                                                 set(Calendar.SECOND, 0)
                                                 set(Calendar.MILLISECOND, 0)
                                             }
-                                            // 과거 시간 검증 (필요시)
                                             if (calendar.timeInMillis > System.currentTimeMillis()) {
                                                 calendar.timeInMillis
                                             } else {
                                                 scope.launch { snackbarHostState.showSnackbar("알람은 현재 시간 이후로 설정해야 합니다.") }
-                                                null // 또는 itemToEdit?.alarmTime (기존 시간 유지)
+                                                null
                                             }
+                                        } else {
+                                            // 사용자가 아무것도 변경하지 않았고, 초기 알람도 없었다면 null
+                                            // 또는 itemToEdit?.alarmTime (기존 시간 유지 - 이 경우 위 조건 다시 생각)
+                                            itemToEdit?.alarmTime?.takeIf { it > System.currentTimeMillis() } // 기존 시간이 유효하면 사용
                                         }
                                     } else {
                                         null
@@ -476,12 +640,13 @@ fun MainView(navController: NavController) {
                                             content = editTextContent,
                                             memo = editTextMemo.ifBlank { null },
                                             alarmTime = finalAlarmTimeMillis,
-                                            // 알람이 활성화 되어있고, 최종 알람 시간이 유효할 때만 true
                                             isAlarmEnabled = editIsAlarmEnabled && (finalAlarmTimeMillis != null)
                                         )
-                                        Log.d("MainView", "Updating Todo: $updatedTodo")
-                                        // viewModel.updateItem(currentTodo, updatedTodo) // 원본과 같이 전달하거나
-                                        viewModel.updateItem(updatedTodo) // ViewModel에서 ID로 원본을 찾아서 cancel 처리
+                                        Log.d(
+                                            "MainView",
+                                            "Updating Todo with Custom Pickers: $updatedTodo"
+                                        )
+                                        viewModel.updateItem(updatedTodo)
                                     }
                                     showEditDialog = false
                                     itemToEdit = null

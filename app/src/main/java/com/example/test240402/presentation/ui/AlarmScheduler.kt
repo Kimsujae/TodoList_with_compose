@@ -61,7 +61,11 @@ class AlarmSchedulerImpl @Inject constructor(
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.cancel(pendingIntent)
-        Log.d("AlarmScheduler", "Alarm canceled for item ID ${item.id}")
+        pendingIntent?.let {
+            alarmManager.cancel(pendingIntent)
+            Log.d("AlarmScheduler", "Alarm canceled for item ID ${item.id}")
+            it.cancel()
+        }
+
     }
 }

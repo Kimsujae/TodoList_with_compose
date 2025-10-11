@@ -28,11 +28,20 @@ class AlarmReceiver : BroadcastReceiver() {
 
         createNotificationChannel(context)
 
+        //알람 클릭 시 아이템 알림 활성화를 위한 intent
+//        val clickIntent = Intent(context, MainActivity::class.java).apply {
+//            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+//            action ="DISABLE_ALARM_ACTION"
+//            putExtra("todoId", todoId)
+//        }
+
+
+
         // 알림 클릭 시 앱 실행을 위한 Intent
         val notificationIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            // 필요하다면 특정 Todo로 바로 이동하기 위한 데이터 전달
-            // putExtra("navigate_to_todo_id", todoId)
+            action ="DISABLE_ALARM_ACTION"
+             putExtra("navigate_to_todo_id", todoId)
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
@@ -44,12 +53,13 @@ class AlarmReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground) // 알림 아이콘 (실제 아이콘으로 변경)
-            .setContentTitle("Todo 알림")
-            .setContentText(todoContent)
+            .setContentTitle("알람: ${todoContent.take(20)}") // 제목에 내용 일부 표시
+            .setContentText("설정한 '${todoContent}' 할 시간입니다.")
             .setPriority(NotificationCompat.PRIORITY_HIGH) // 중요도 높음
             .setDefaults(NotificationCompat.DEFAULT_ALL)   // 기본 알림음, 진동 등
             .setContentIntent(pendingIntent) // 알림 클릭 시 실행될 PendingIntent
             .setAutoCancel(true) // 알림 클릭 시 자동으로 사라지도록
+            .setContentIntent(pendingIntent)
             .build()
 
         val notificationManager =
