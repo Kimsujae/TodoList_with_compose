@@ -3,8 +3,11 @@ package com.example.test240402.presentation.ui
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -85,6 +88,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.getSystemService
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -113,6 +118,22 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(AlarmManager::class.java)
+            if (!alarmManager.canScheduleExactAlarms()) {
+                // 권한이 없는 경우, 사용자에게 권한 설정 화면으로 이동하도록 안내
+                Intent().also { intent ->
+                    intent.action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                    startActivity(intent)
+                }
+                //todo
+                // 여기에 사용자에게 왜 권한이 필요한지 설명하는
+                // 다이얼로그나 스낵바를 띄워주면 사용자 경험이 더 좋아집니다.
+            }
+        }
+        handleIntent(intent = intent)
+
+
         setContent {
             Test240402Theme {
                 // A surface container using the 'background' color from the theme
@@ -120,7 +141,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
 
-                    val navController = rememberNavController()
+//                    val navController = rememberNavController()
                     MainAndInputScreen(mainViewModel)
 
                 }
