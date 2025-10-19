@@ -1,6 +1,7 @@
 package com.example.test240402.presentation.viewmodel
 
 import android.util.Log
+import androidx.compose.animation.core.copy
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.test240402.domain.model.TodoItem
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -35,9 +37,28 @@ class MainViewModel @Inject constructor(
 //            started = SharingStarted.WhileSubscribed(5000),
 //            scope = viewModelScope
 //        )
-//    init {
-//        getAllContent()
-//    }
+    init {
+        cleanupExpiredAlarms()
+    }
+
+    private fun cleanupExpiredAlarms() {
+        viewModelScope.launch {
+            // Flow가 데이터를 로드할 때까지 잠시 기다리거나, 첫 번째 데이터를 사용합니다.
+            // todoList.first()를 사용하여 초기 데이터 로드 후 한 번만 실행되도록 합니다.
+            val initialList = todoList?.first { it.isNotEmpty() } // 리스트가 로드될 때까지 기다립니다.
+            val currentTime = System.currentTimeMillis()
+
+            initialList?.forEach { item ->
+                // 알람이 활성화되어 있고, 알람 시간이 현재 시간보다 과거인 경우
+                if (item.isAlarmEnabled && item.alarmTime != null && item.alarmTime < currentTime) {
+                    Log.d("MainViewModel", "만료된 알람 정리: ${item.content}")
+                    // isAlarmEnabled를 false로 변경하여 업데이트
+                    val updatedItem = item.copy(isAlarmEnabled = false)
+                    updateTodoUseCase(updatedItem)
+                }
+            }
+        }
+    }
     val todoList: StateFlow<List<TodoItem>> = getTodosUseCase().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

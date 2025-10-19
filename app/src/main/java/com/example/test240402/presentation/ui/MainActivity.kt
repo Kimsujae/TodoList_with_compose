@@ -1,20 +1,22 @@
 package com.example.test240402.presentation.ui
 
+import android.Manifest
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,47 +32,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
-//import androidx.compose.material3.AlertDialog
-//import androidx.compose.material3.AlertDialogDefaults
-//import androidx.compose.material3.Button
-//import androidx.compose.material3.Card
-//import androidx.compose.material3.CardDefaults
-//import androidx.compose.material3.Checkbox
-//import androidx.compose.material3.CircularProgressIndicator
-//import androidx.compose.material3.DatePicker
-//import androidx.compose.material3.DatePickerDialog
-//import androidx.compose.material3.DisplayMode
-//import androidx.compose.material3.Divider
-//import androidx.compose.material3.ExperimentalMaterial3Api
-//import androidx.compose.material3.ExtendedFloatingActionButton
-//import androidx.compose.material3.Icon
-//import androidx.compose.material3.IconButton
-//import androidx.compose.material3.MaterialTheme
-//import androidx.compose.material3.OutlinedTextField
-//import androidx.compose.material3.Scaffold
-//import androidx.compose.material3.SnackbarDuration
-//import androidx.compose.material3.SnackbarHost
-//import androidx.compose.material3.SnackbarHostState
-//import androidx.compose.material3.SnackbarResult
-//import androidx.compose.material3.Surface
-//import androidx.compose.material3.Switch
-//import androidx.compose.material3.Text
-//import androidx.compose.material3.TextButton
 import androidx.compose.material3.*
-//import androidx.compose.material3.TimePicker
-//import androidx.compose.material3.TimePickerLayoutType
-//import androidx.compose.material3.rememberDatePickerState
-//import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -80,16 +47,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.core.content.getSystemService
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -99,12 +61,9 @@ import com.example.test240402.domain.model.TodoItem
 import com.example.test240402.presentation.viewmodel.InputViewModel
 import com.example.test240402.presentation.viewmodel.MainViewModel
 import com.example.test240402.ui.theme.Test240402Theme
-import com.example.test240402.ui.theme.Todo
-import com.example.test240402.ui.theme.Icon_button_pastel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.example.test240402.presentation.ui.TodoItemRow
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.Date
@@ -115,27 +74,88 @@ class MainActivity : ComponentActivity() {
 
     private val mainViewModel: MainViewModel by viewModels()
 
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                // 사용자가 권한을 허용한 경우의 동작 (예: 로그 남기기)
+                Log.d("MainActivity", "POST_NOTIFICATIONS 권한이 허용되었습니다.")
+            } else {
+                // 사용자가 권한을 거부한 경우의 동작 (예: 스낵바나 토스트로 안내)
+                Log.d("MainActivity", "POST_NOTIFICATIONS 권한이 거부되었습니다.")
+            }
+        }
+
+    // 2. 안드로이드 13(API 33) 이상에서 알림 권한을 요청하는 함수
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                // 권한이 없다면, 사용자에게 권한 요청 팝업을 띄웁니다.
+                // 사용자가 이전에 거부했는지 여부에 따라 설명을 추가하는 로직(shouldShowRequestPermissionRationale)을 넣으면 더 좋습니다.
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = getSystemService(AlarmManager::class.java)
-            if (!alarmManager.canScheduleExactAlarms()) {
-                // 권한이 없는 경우, 사용자에게 권한 설정 화면으로 이동하도록 안내
-                Intent().also { intent ->
-                    intent.action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
-                    startActivity(intent)
-                }
-                //todo
-                // 여기에 사용자에게 왜 권한이 필요한지 설명하는
-                // 다이얼로그나 스낵바를 띄워주면 사용자 경험이 더 좋아집니다.
-            }
-        }
+
         handleIntent(intent = intent)
+
+        askNotificationPermission()
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//            val alarmManager = getSystemService(AlarmManager::class.java)
+//            if (!alarmManager.canScheduleExactAlarms()) {
+//                // 권한이 없는 경우, 사용자에게 권한 설정 화면으로 이동하도록 안내
+//                Intent().also { intent ->
+//                    intent.action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+//                    startActivity(intent)
+//                }
+//
+//            }
+//        }
 
 
         setContent {
+            var showPermissionDialog by remember { mutableStateOf(false) }
+            val context = LocalContext.current
+
+            // 안드로이드 12 (S) 이상에서만 권한 확인 로직 실행
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val alarmManager = getSystemService(AlarmManager::class.java)
+                // 권한이 없는 경우, 다이얼로그를 표시하도록 상태 변경
+                if (!alarmManager.canScheduleExactAlarms()) {
+                    // LaunchedEffect를 사용하여 Composition이 완료된 후 상태를 변경
+                    LaunchedEffect(Unit) {
+                        showPermissionDialog = true
+                    }
+                }
+            }
             Test240402Theme {
+                if (showPermissionDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showPermissionDialog = false },
+                        title = { Text("알람 권한 필요") },
+                        text = { Text("정확한 시간에 알림을 받기 위해서는 '알람 및 리마인더' 권한이 필요합니다. 설정 화면으로 이동하여 권한을 허용해주세요.") },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    showPermissionDialog = false
+                                    // 사용자가 확인을 눌렀을 때 설정 화면으로 이동
+                                    Intent().also { intent ->
+                                        intent.action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                                        context.startActivity(intent)
+                                    }
+                                }
+                            ) { Text("설정으로 이동") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showPermissionDialog = false }) { Text("닫기") }
+                        }
+                    )
+                }
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
@@ -154,10 +174,11 @@ class MainActivity : ComponentActivity() {
         intent?.let { handleIntent(intent) }
         Log.d("MainActivity", "onNewIntent called")
     }
+
     private fun handleIntent(intent: Intent) {
         if (intent.action == "DISABLE_ALARM_ACTION") {
-            val todoIdToDisable =intent.getLongExtra("ALARM_TODO_ID_TO_DISABLE", -1L)
-            if (todoIdToDisable!= -1L){
+            val todoIdToDisable = intent.getLongExtra("ALARM_TODO_ID_TO_DISABLE", -1L)
+            if (todoIdToDisable != -1L) {
                 mainViewModel.disableAlarmForTodoItem(todoIdToDisable)
 
                 // (선택 사항) 인텐트 중복 처리를 방지하기 위해 action을 null로 설정
@@ -167,7 +188,6 @@ class MainActivity : ComponentActivity() {
         }
 
     }
-
 
 
 }
