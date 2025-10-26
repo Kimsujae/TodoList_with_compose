@@ -5,6 +5,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import android.annotation.SuppressLint
 import android.app.AlarmManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -57,6 +58,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.test240402.BuildConfig
 import com.example.test240402.domain.model.TodoItem
 import com.example.test240402.presentation.viewmodel.InputViewModel
 import com.example.test240402.presentation.viewmodel.MainViewModel
@@ -102,9 +104,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        handleGhostAlarmsOnFirstRun()
         handleIntent(intent = intent)
 
         askNotificationPermission()
+
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
 //            val alarmManager = getSystemService(AlarmManager::class.java)
 //            if (!alarmManager.canScheduleExactAlarms()) {
@@ -185,6 +189,29 @@ class MainActivity : ComponentActivity() {
                 this.intent.action = null
             }
 
+        }
+
+    }
+    private fun handleGhostAlarmsOnFirstRun() {
+
+        // 디버그 모드일 때만 실행
+        if (BuildConfig.DEBUG) {
+            val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+            val isFirstRun = prefs.getBoolean("isFirstRun", true)
+
+            if (isFirstRun) {
+                Log.d("MainActivity", "앱 설치 후 최초 실행: 모든 알람을 초기화합니다.")
+
+                // AlarmScheduler 인스턴스를 직접 생성하거나 Hilt로부터 주입받아야 합니다.
+                // 여기서는 간단하게 직접 생성합니다.
+                val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+                val scheduler = AlarmSchedulerImpl(applicationContext, alarmManager)
+                scheduler.cancelAllAlarms()
+
+                prefs.edit().putBoolean("isFirstRun", false).apply()
+            }
+        }else{
+            Log.d("if문 안돌아감","바보")
         }
 
     }
@@ -840,38 +867,39 @@ fun InputView(navController: NavController) {
                     initialSelectedDateMillis = selectedAlarmTimeMillis
                         ?: System.currentTimeMillis()
                 )
-                DatePickerDialog(onDismissRequest = { showDatePicker = false }, confirmButton = {
-                    TextButton(
-                        onClick = {
+                DatePickerDialog(
+                    onDismissRequest = { showDatePicker = false },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDatePicker = false
+                                datePickerState.selectedDateMillis?.let {
+                                    // 사용자가 날짜만 선택하고 시간을 아직 선택하지 않았을 수 있으므로,
+                                    // 선택된 날짜의 0시 0분으로 우선 설정하거나,
+                                    // 바로 시간 선택기를 띄워 시간을 마저 받도록 함.
+                                    val cal = Calendar.getInstance().apply { timeInMillis = it }
+                                    // 기존에 시간이 설정되어 있었다면 그 시간 유지, 아니면 정오 등으로 초기화
+                                    val currentHour =
+                                        if (selectedAlarmTimeMillis != null) Calendar.getInstance()
+                                            .apply { timeInMillis = selectedAlarmTimeMillis!! }
+                                            .get(Calendar.HOUR_OF_DAY) else 12
+                                    val currentMinute =
+                                        if (selectedAlarmTimeMillis != null) Calendar.getInstance()
+                                            .apply { timeInMillis = selectedAlarmTimeMillis!! }
+                                            .get(Calendar.MINUTE) else 0
+                                    cal.set(Calendar.HOUR_OF_DAY, currentHour)
+                                    cal.set(Calendar.MINUTE, currentMinute)
+                                    cal.set(Calendar.SECOND, 0)
+                                    cal.set(Calendar.MILLISECOND, 0)
+                                    selectedAlarmTimeMillis = cal.timeInMillis
+                                    showTimePicker = true // 날짜 선택 후 바로 시간 선택기 표시
+                                }
+                            }) { Text("확인") }
+                    }, dismissButton = {
+                        TextButton(onClick = {
                             showDatePicker = false
-                            datePickerState.selectedDateMillis?.let {
-                                // 사용자가 날짜만 선택하고 시간을 아직 선택하지 않았을 수 있으므로,
-                                // 선택된 날짜의 0시 0분으로 우선 설정하거나,
-                                // 바로 시간 선택기를 띄워 시간을 마저 받도록 함.
-                                val cal = Calendar.getInstance()
-                                cal.timeInMillis = it
-                                // 기존에 시간이 설정되어 있었다면 그 시간 유지, 아니면 정오 등으로 초기화
-                                val currentHour =
-                                    if (selectedAlarmTimeMillis != null) Calendar.getInstance()
-                                        .apply { timeInMillis = selectedAlarmTimeMillis!! }
-                                        .get(Calendar.HOUR_OF_DAY) else 12
-                                val currentMinute =
-                                    if (selectedAlarmTimeMillis != null) Calendar.getInstance()
-                                        .apply { timeInMillis = selectedAlarmTimeMillis!! }
-                                        .get(Calendar.MINUTE) else 0
-                                cal.set(Calendar.HOUR_OF_DAY, currentHour)
-                                cal.set(Calendar.MINUTE, currentMinute)
-                                cal.set(Calendar.SECOND, 0)
-                                cal.set(Calendar.MILLISECOND, 0)
-                                selectedAlarmTimeMillis = cal.timeInMillis
-                                showTimePicker = true // 날짜 선택 후 바로 시간 선택기 표시
-                            }
-                        }) { Text("확인") }
-                }, dismissButton = {
-                    TextButton(onClick = {
-                        showDatePicker = false
-                    }) { Text("취소") }
-                }) {
+                        }) { Text("취소") }
+                    }) {
                     DatePicker(state = datePickerState)
                 }
             }
@@ -921,7 +949,13 @@ fun InputView(navController: NavController) {
                                 cal.set(Calendar.SECOND, 0)
                                 cal.set(Calendar.MILLISECOND, 0)
 
-                                selectedAlarmTimeMillis = cal.timeInMillis
+                                val now =System.currentTimeMillis()
+                                if (cal.timeInMillis <= now) {
+                                    scope.launch { snackbarHostState.showSnackbar("알람은 현재 시간 이후로 설정해야 합니다.") }
+                                    selectedAlarmTimeMillis = now
+                                }else{
+                                    selectedAlarmTimeMillis = cal.timeInMillis
+                                }
                                 isAlarmEnabled = true // 시간을 설정하면 알람을 자동으로 활성화 (선택 사항)
                                 showTimePicker = false
                                 Log.d(

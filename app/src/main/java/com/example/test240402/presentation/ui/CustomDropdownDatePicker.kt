@@ -3,6 +3,7 @@ package com.example.test240402.presentation.ui // 실제 패키지 경로로 수
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -30,163 +32,178 @@ fun CustomDropdownDatePicker(
     onDateSelected: (year: Int, month: Int, day: Int) -> Unit, // 월은 1-12로 전달
     dropdownMenuMaxHeight: Dp = 200.dp // 각 드롭다운 메뉴의 최대 높이
 ) {
-    val calendar = remember { Calendar.getInstance() } // remember로 감싸서 recomposition 방지
-    // 초기 날짜 설정 (LaunchedEffect 또는 key를 사용하여 initialDateMillis 변경 시에도 반영되도록 할 수 있음)
-    // 여기서는 Composable이 처음 로드될 때 또는 initialDateMillis가 non-null일 때 한 번 설정
+    // ... (이 부분의 코드는 기존과 동일) ...
+    val calendar = remember { Calendar.getInstance() }
     LaunchedEffect(initialDateMillis) {
         if (initialDateMillis != null) {
             calendar.timeInMillis = initialDateMillis
         }
-        // 상태 변수들을 calendar 값으로 초기화 (initialDateMillis가 null이면 현재 날짜)
-        // 이 로직은 selectedYear, selectedMonth, selectedDay의 remember 초기값으로 이동하는 것이 더 명확할 수 있습니다.
     }
-
-    var selectedYear by remember(initialDateMillis) { // initialDateMillis 변경 시 년도 재설정
+    var selectedYear by remember(initialDateMillis) {
         mutableIntStateOf( (initialDateMillis?.let { calendar.apply { timeInMillis = it }.get(Calendar.YEAR) }
             ?: Calendar.getInstance().get(Calendar.YEAR)) )
     }
-    var selectedMonth by remember(initialDateMillis) { // initialDateMillis 변경 시 월 재설정
+    var selectedMonth by remember(initialDateMillis) {
         mutableIntStateOf( (initialDateMillis?.let { calendar.apply { timeInMillis = it }.get(Calendar.MONTH) + 1 }
             ?: (Calendar.getInstance().get(Calendar.MONTH) + 1)) )
     }
-    var selectedDay by remember(initialDateMillis) { // initialDateMillis 변경 시 일 재설정
+    var selectedDay by remember(initialDateMillis) {
         mutableIntStateOf( (initialDateMillis?.let { calendar.apply { timeInMillis = it }.get(Calendar.DAY_OF_MONTH) }
             ?: Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) )
     }
-
-
     val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
-    // 년도 선택 범위: 현재 년도부터 향후 10년
     val years = remember { (currentYear..currentYear + 10).toList() }
-    // 월 선택 범위: 1월부터 12월
     val months = remember { (1..12).toList() }
-
-    // 선택된 년/월에 따른 일 범위 동적 계산
     val daysInMonth = remember(selectedYear, selectedMonth) {
         val tempCalendar = Calendar.getInstance()
         tempCalendar.set(Calendar.YEAR, selectedYear)
-        tempCalendar.set(Calendar.MONTH, selectedMonth - 1) // Calendar.MONTH는 0-11
+        tempCalendar.set(Calendar.MONTH, selectedMonth - 1)
         (1..tempCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)).toList()
     }
-
     LaunchedEffect(daysInMonth, selectedDay) {
-        if (daysInMonth.isNotEmpty() && selectedDay > daysInMonth.size ) { // 조건 수정: daysInMonth 비어있지 않을 때
+        if (daysInMonth.isNotEmpty() && selectedDay > daysInMonth.size ) {
             selectedDay = daysInMonth.last()
         }
     }
-
-    // 최종 선택된 날짜 콜백
     LaunchedEffect(selectedYear, selectedMonth, selectedDay) {
         onDateSelected(selectedYear, selectedMonth, selectedDay)
     }
+    // -------------------------------------------------------------------
 
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp) // 각 드롭다운 사이 간격
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        // 년도 선택
-        DropdownSelector(
+        // --- 1. 핵심 수정: 함수 호출 이름을 변경 ---
+        DateDropdownSelector(
             label = "년",
             items = years.map { it.toString() },
             selectedItem = selectedYear.toString(),
             onItemSelected = { selectedYear = it.toIntOrNull() ?: currentYear },
-            modifier = Modifier.weight(0.38f), // 년도 비율 증가 (예: 40%)
-            fontSize = 13.sp, // 년도 폰트 크기 조절 (필요시)
+            modifier = Modifier.weight(0.38f),
+            fontSize = 13.sp,
             dropdownMenuMaxHeight = dropdownMenuMaxHeight
         )
-
-        // 월 선택
-        DropdownSelector(
+        DateDropdownSelector(
             label = "월",
             items = months.map { formatTwoDigits(it) },
             selectedItem = formatTwoDigits(selectedMonth),
             onItemSelected = { selectedMonth = it.toIntOrNull() ?: 1 },
-            modifier = Modifier.weight(0.31f), // 월 비율 (예: 30%)
-            fontSize = 13.sp, // 월/일 폰트 크기 조절
+            modifier = Modifier.weight(0.31f),
+            fontSize = 13.sp,
             dropdownMenuMaxHeight = dropdownMenuMaxHeight
         )
-
-        // 일 선택
-        DropdownSelector(
+        DateDropdownSelector(
             label = "일",
             items = daysInMonth.map { formatTwoDigits(it) },
             selectedItem = formatTwoDigits(selectedDay),
             onItemSelected = { selectedDay = it.toIntOrNull() ?: 1 },
-            modifier = Modifier.weight(0.31f), // 일 비율 (예: 30%)
-            fontSize = 13.sp, // 월/일 폰트 크기 조절
+            modifier = Modifier.weight(0.31f),
+            fontSize = 13.sp,
             dropdownMenuMaxHeight = dropdownMenuMaxHeight
         )
     }
 }
 
-// CustomDropdownDatePicker.kt 또는 별도의 custom_ui.kt
-
-// ... (다른 import 및 코드)
-
+// --- 2. 핵심 수정: 함수 정의 부분의 이름을 변경 ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DropdownSelector(
+private fun DateDropdownSelector(
     label: String,
     items: List<String>,
     selectedItem: String,
     onItemSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    fontSize: androidx.compose.ui.unit.TextUnit = TextUnit.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
     dropdownMenuMaxHeight: Dp = 200.dp
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    var internalText by remember(label, selectedItem) { mutableStateOf(selectedItem) }
+
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
+        onExpandedChange = {
+            if (!expanded) {
+                onItemSelected(internalText)
+            }
+            expanded = !expanded
+        },
         modifier = modifier
     ) {
         OutlinedTextField(
-            value = selectedItem,
-            onValueChange = { /* 읽기 전용 */ },
-            readOnly = true,
+            value = internalText,
+            onValueChange = { userInput ->
+                if (userInput.all { it.isDigit() }) {
+                    internalText = userInput
+                }
+            },
+            readOnly = false,
             label = { Text(label) },
-            textStyle = TextStyle(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface), // 값 텍스트 색상
+            textStyle = TextStyle(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface),
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = TextFieldDefaults.outlinedTextFieldColors( // 명시적 색상 설정
-                focusedBorderColor = MaterialTheme.colorScheme.primary,                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                // textColor = MaterialTheme.colorScheme.onSurface, // textStyle에서 이미 지정
-                // cursorColor = MaterialTheme.colorScheme.primary
             ),
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth(),
             singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(MaterialTheme.colorScheme.surface) // 드롭다운 메뉴 배경
-        ) {
-            Column(
-                modifier = Modifier
-                    .heightIn(max = dropdownMenuMaxHeight)
-                    .verticalScroll(rememberScrollState())
+
+        // --- 여기가 핵심 수정 사항입니다 ---
+        // 년, 월, 일에 따라 다른 필터링 로직을 적용합니다.
+        val filteringOptions = when (label) {
+            "년" -> {
+                val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                items.filter {
+                    // 1. 사용자가 입력한 숫자로 시작하고 (예: '202' -> 2020, 2021...)
+                    // 2. 현재 년도보다 크거나 같은 미래의 년도만 필터링합니다.
+                    it.startsWith(internalText) && (it.toIntOrNull() ?: 0) >= currentYear
+                }
+            }
+            "월", "일" -> {
+                // 월과 일은 기존 방식대로 필터링합니다.
+                items.filter { it.startsWith(internalText, ignoreCase = true) }
+            }
+            else -> items // 그 외의 경우는 모든 아이템을 보여줍니다.
+        }
+        // -----------------------------------
+
+        if (filteringOptions.isNotEmpty()) {
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = {
+                    onItemSelected(internalText)
+                    expanded = false
+                },
+                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
             ) {
-                items.forEach { itemValue ->
-                    DropdownMenuItem(
-                        text = { Text(itemValue, fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface) }, // 아이템 텍스트 색상
-                        onClick = {
-                            onItemSelected(itemValue)
-                            expanded = false
-                        },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                    )
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = dropdownMenuMaxHeight)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    filteringOptions.forEach { itemValue ->
+                        DropdownMenuItem(
+                            text = { Text(itemValue, fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface) },
+                            onClick = {
+                                internalText = itemValue
+                                onItemSelected(itemValue)
+                                expanded = false
+                            },
+                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                        )
+                    }
                 }
             }
         }
     }
 }
-
-
-
 

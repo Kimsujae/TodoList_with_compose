@@ -1,71 +1,124 @@
-package com.example.test240402.presentation.ui// com.example.test240402.alarm.AlarmScheduler.kt (예시)
+package com.example.test240402.presentation.ui
+
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import com.example.test240402.domain.model.TodoItem
 import javax.inject.Inject
 
-
 interface AlarmScheduler {
     fun schedule(item: TodoItem)
     fun cancel(item: TodoItem)
+    fun cancelAllAlarms()
 }
 
 class AlarmSchedulerImpl @Inject constructor(
-    private val context: Context
+    private val context: Context,
+    private val alarmManager: AlarmManager
 ) : AlarmScheduler {
-    private val alarmManager = context.getSystemService(AlarmManager::class.java)
 
+    /**
+     * 알람을 예약합니다.
+     * 핵심: 예약하려는 시간이 현재 시간보다 과거이면 아무 작업도 하지 않고 로그만 남깁니다.
+     */
     override fun schedule(item: TodoItem) {
-        if (!item.isAlarmEnabled || item.alarmTime == null || item.alarmTime <= System.currentTimeMillis()) {
-            // 이미 시간이 지났거나 알람이 비활성화된 경우 스케줄링하지 않음
+        // 알람이 비활성화되었거나, 알람 시간이 설정되지 않았으면 즉시 종료
+        if (!item.isAlarmEnabled || item.alarmTime == null) {
             return
         }
+
+        // --- 핵심 방어 로직 ---
+        if (item.alarmTime <= System.currentTimeMillis()) {
+            Log.w("AlarmScheduler", "ID ${item.id}의 알람 예약 시도: 시간이 이미 지났으므로 예약하지 않습니다.")
+            return // 과거 시간이므로 알람을 예약하지 않고 함수 종료
+        }
+        // ---------------------
+
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            // 알람 발생 시 전달할 데이터 (예: Todo 아이템 ID, 내용)
+            // 알람 발생 시 전달할 데이터 (기존 로직 유지)
             putExtra(AlarmReceiver.EXTRA_TODO_ID, item.id)
             putExtra(AlarmReceiver.EXTRA_TODO_CONTENT, item.content)
+            putExtra(AlarmReceiver.EXTRA_TODO_MEMO, item.memo)
         }
 
-        // 각 알람마다 고유한 requestCode가 필요 (여기서는 TodoItem의 id 사용)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            item.id, // requestCode: 각 알람을 구별하기 위한 고유 ID
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
         try {
-            // 정확한 알람 설정 (API 31+ 에서는 SCHEDULE_EXACT_ALARM 권한 필요)
-            // setExactAndAllowWhileIdle : Doze 모드에서도 알람이 울리도록 함
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP, // 실제 시간 기준, 기기가 꺼져있으면 깨워서 알람 실행
-                item.alarmTime,
-                pendingIntent
-            )
-            Log.d("AlarmScheduler", "Alarm scheduled for item ID ${item.id} at ${item.alarmTime}")
-        } catch (se: SecurityException) {
-            Log.e("AlarmScheduler", "Missing SCHEDULE_EXACT_ALARM permission?", se)
-            // 사용자에게 권한 요청 안내 또는 대체 알람(부정확한 알람) 고려
+            // 정확한 알람 설정 (Doze 모드에서도 동작)
+            createPendingIntent(item.id, intent)?.let {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    item.alarmTime,
+                    it
+                )
+            }
+            Log.d("AlarmScheduler", "ID ${item.id} 알람 예약 완료. 시간: ${java.util.Date(item.alarmTime)}")
+        } catch (e: SecurityException) {
+            Log.e("AlarmScheduler", "알람 예약 실패: SCHEDULE_EXACT_ALARM 권한이 없습니다.", e)
         }
     }
 
+    /**
+     * 특정 아이템의 알람을 취소합니다.
+     */
     override fun cancel(item: TodoItem) {
         val intent = Intent(context, AlarmReceiver::class.java)
-        // 스케줄링 시 사용한 동일한 requestCode로 PendingIntent 생성
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            item.id,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        pendingIntent?.let {
+
+        // 중요: 'FLAG_NO_CREATE'를 사용하여 예약된 알람이 있을 때만 PendingIntent를 가져옵니다.
+        val pendingIntent = createPendingIntent(item.id, intent, PendingIntent.FLAG_NO_CREATE)
+
+        if (pendingIntent != null) {
             alarmManager.cancel(pendingIntent)
-            Log.d("AlarmScheduler", "Alarm canceled for item ID ${item.id}")
-            it.cancel()
+            pendingIntent.cancel()
+            Log.d("AlarmScheduler", "ID ${item.id} 알람 취소 완료.")
+        } else {
+            // 이 로그는 정상적인 상황에서도 (예: 알람이 없는 항목을 삭제할 때) 발생할 수 있습니다.
+            Log.w("AlarmScheduler", "ID ${item.id}에 해당하는 알람을 찾지 못해 취소할 수 없습니다.")
+        }
+    }
+
+    /**
+     * 앱 설치 후 최초 실행 시 남아있는 모든 유령 알람을 제거합니다.
+     */
+    override fun cancelAllAlarms() {
+        Log.d("GHOST_ALARM_DEBUG", "모든 유령 알람 취소를 시작합니다.")
+        val intent = Intent(context, AlarmReceiver::class.java)
+
+        // ID 범위를 넓게 잡아 기존에 생성되었을 수 있는 모든 알람을 순회하며 확인
+        for (requestCode in 0..10000) {
+            val pendingIntent = createPendingIntent(requestCode, intent, PendingIntent.FLAG_NO_CREATE)
+
+            if (pendingIntent != null) {
+                Log.d("GHOST_ALARM_DEBUG", "requestCode $requestCode 에서 유령 알람을 발견하여 취소합니다.")
+                alarmManager.cancel(pendingIntent)
+                pendingIntent.cancel()
+            }
+        }
+        Log.d("GHOST_ALARM_DEBUG", "유령 알람 취소 작업 완료.")
+    }
+
+    /**
+     * PendingIntent를 생성하는 헬퍼 함수.
+     * 플래그를 통일하여 생성과 취소 시 동일한 객체를 참조하도록 보장합니다.
+     */
+    private fun createPendingIntent(requestCode: Int, intent: Intent, flags: Int = 0): PendingIntent? {
+        // requestCode를 Int로 변환 (TodoItem의 id가 Long이므로)
+        val finalRequestCode = requestCode.toInt()
+
+        val finalFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // 안드로이드 12 (S) 이상에서는 FLAG_IMMUTABLE 또는 FLAG_MUTABLE 중 하나를 명시해야 함
+            flags or PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            flags or PendingIntent.FLAG_UPDATE_CURRENT
         }
 
+        // FLAG_NO_CREATE가 포함된 경우, PendingIntent가 없으면 null을 반환할 수 있음
+        return PendingIntent.getBroadcast(
+            context,
+            finalRequestCode,
+            intent,
+            finalFlags
+        )
     }
 }

@@ -110,7 +110,7 @@ fun CustomDropdownTimePicker(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DropdownSelector(
+fun DropdownSelector(
     label: String,
     items: List<String>,
     selectedItem: String,

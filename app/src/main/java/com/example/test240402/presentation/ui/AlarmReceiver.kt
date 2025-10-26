@@ -17,12 +17,14 @@ class AlarmReceiver : BroadcastReceiver() {
     companion object {
         const val EXTRA_TODO_ID = "todo_id"
         const val EXTRA_TODO_CONTENT = "todo_content"
+        const val EXTRA_TODO_MEMO = "todo_memo"
         private const val CHANNEL_ID = "todo_alarm_channel"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         val todoId = intent.getIntExtra(EXTRA_TODO_ID, -1)
         val todoContent = intent.getStringExtra(EXTRA_TODO_CONTENT) ?: "할 일이 있습니다!"
+        val todoMemo = intent.getStringExtra(EXTRA_TODO_MEMO) ?: "메모가 있습니다!"
         Log.d("AlarmReceiver", "onReceive CALLED! - Time: ${System.currentTimeMillis()}")
         Log.d("AlarmReceiver", "Alarm received for Todo ID: $todoId, Content: $todoContent")
 
@@ -53,8 +55,8 @@ class AlarmReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground) // 알림 아이콘 (실제 아이콘으로 변경)
-            .setContentTitle("알람: ${todoContent.take(20)}") // 제목에 내용 일부 표시
-            .setContentText("설정한 '${todoContent}' 할 시간입니다.")
+            .setContentTitle(" ${todoContent.take(20)}") // 제목에 내용 일부 표시
+            .setContentText("'${todoMemo}' 할 시간입니다.")
             .setPriority(NotificationCompat.PRIORITY_HIGH) // 중요도 높음
             .setDefaults(NotificationCompat.DEFAULT_ALL)   // 기본 알림음, 진동 등
             .setContentIntent(pendingIntent) // 알림 클릭 시 실행될 PendingIntent

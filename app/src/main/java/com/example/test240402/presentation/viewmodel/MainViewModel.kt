@@ -18,8 +18,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Date
 import javax.inject.Inject
 
 @HiltViewModel
@@ -37,52 +40,75 @@ class MainViewModel @Inject constructor(
 //            started = SharingStarted.WhileSubscribed(5000),
 //            scope = viewModelScope
 //        )
-    init {
-        cleanupExpiredAlarms()
-    }
-
-    private fun cleanupExpiredAlarms() {
-        viewModelScope.launch {
-            // Flow가 데이터를 로드할 때까지 잠시 기다리거나, 첫 번째 데이터를 사용합니다.
-            // todoList.first()를 사용하여 초기 데이터 로드 후 한 번만 실행되도록 합니다.
-            val initialList = todoList?.first { it.isNotEmpty() } // 리스트가 로드될 때까지 기다립니다.
-            val currentTime = System.currentTimeMillis()
-
-            initialList?.forEach { item ->
-                // 알람이 활성화되어 있고, 알람 시간이 현재 시간보다 과거인 경우
-                if (item.isAlarmEnabled && item.alarmTime != null && item.alarmTime < currentTime) {
-                    Log.d("MainViewModel", "만료된 알람 정리: ${item.content}")
-                    // isAlarmEnabled를 false로 변경하여 업데이트
-                    val updatedItem = item.copy(isAlarmEnabled = false)
-                    updateTodoUseCase(updatedItem)
-                }
-            }
-        }
-    }
+    private val _todoListStream = getTodosUseCase()
     val todoList: StateFlow<List<TodoItem>> = getTodosUseCase().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
-    fun deleteItem(item: TodoItem){
+
+
+    init {
+        _todoListStream.onEach { items ->
+            // --- 디버깅 로그 추가 ---
+            Log.d("DB_DEBUG", "------------------------------------")
+            Log.d("DB_DEBUG", "DB 데이터 변경 감지됨 (총 ${items.size}개)")
+            if (items.isEmpty()) {
+                Log.d("DB_DEBUG", "DB에 데이터가 없습니다.")
+            } else {
+                items.forEach { item ->
+                    val alarmTimeStr = if (item.alarmTime != null) Date(item.alarmTime).toString() else "없음"
+                    Log.d("DB_DEBUG", "ID: ${item.id}, 내용: ${item.content}, 알람활성: ${item.isAlarmEnabled}, 알람시간: $alarmTimeStr")
+                }
+            }
+            Log.d("DB_DEBUG", "------------------------------------")
+            // --- 디버깅 로그 끝 ---
+
+            cleanupExpiredAlarms(items)
+        }.launchIn(viewModelScope)
+    }
+
+    private fun cleanupExpiredAlarms(items: List<TodoItem>) {
+        viewModelScope.launch {
+
+
+            val currentTime = System.currentTimeMillis()
+
+            items?.forEach { item ->
+                // 알람이 활성화되어 있고, 알람 시간이 현재 시간보다 과거인 경우
+                if (item.isAlarmEnabled && item.alarmTime != null && item.alarmTime < currentTime) {
+                    Log.d("MainViewModel", "만료된 알람 정리: ${item.content}")
+                    // isAlarmEnabled를 false로 변경하여 업데이트
+                    updateTodoUseCase(item.copy(isAlarmEnabled = false))
+                }
+            }
+        }
+    }
+
+    fun deleteItem(item: TodoItem) {
         viewModelScope.launch {
             Log.d("MainViewModel", "deleteItem called for item: ${item.content}")
             alarmScheduler.cancel(item)
             deleteTodoUseCase(item)
         }
     }
-    fun updateItem(item: TodoItem){
+
+    fun updateItem(item: TodoItem) {
         viewModelScope.launch {
             alarmScheduler.cancel(item)
 
             updateTodoUseCase(item)
 
             if (item.isAlarmEnabled && item.alarmTime != null && item.alarmTime > System.currentTimeMillis()) {
-                Log.d("MainViewModel", "Scheduling alarm for item: ${item.content} at ${item.alarmTime}")
+                Log.d(
+                    "MainViewModel",
+                    "Scheduling alarm for item: ${item.content} at ${item.alarmTime}"
+                )
                 alarmScheduler.schedule(item)
             }
         }
     }
+
     fun disableAlarmForTodoItem(itemId: Long) = viewModelScope.launch {
         // 현재 StateFlow의 값에서 ID를 가진 아이템을 찾습니다.
         val item = todoList.value.find { it.id.toLong() == itemId }
@@ -90,7 +116,10 @@ class MainViewModel @Inject constructor(
         item?.let {
             // 해당 아이템의 알람이 실제로 활성화 상태인지 확인
             if (it.isAlarmEnabled) {
-                Log.d("MainViewModel", "Disabling alarm for item ID: $itemId via notification click.")
+                Log.d(
+                    "MainViewModel",
+                    "Disabling alarm for item ID: $itemId via notification click."
+                )
 
                 // 1. 시스템에 예약된 알람 취소
                 alarmScheduler.cancel(it)
@@ -103,7 +132,6 @@ class MainViewModel @Inject constructor(
             }
         } ?: Log.e("MainViewModel", "Item with ID $itemId not found to disable alarm.")
     }
-
 
 
 //    private val _contentList = MutableStateFlow<List<ContentEntity>>(emptyList())
