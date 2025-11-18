@@ -7,12 +7,15 @@ plugins {
 
 android {
     namespace = "com.example.test240402"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
+        // TODO: Replace with a unique applicationId for the Google Play Store.
         applicationId = "com.example.test240402"
-        minSdk = 33
-        targetSdk = 34
+        // TODO: Consider lowering the minSdk version to support more devices.
+        minSdk = 34
+        targetSdk = 35
+        // TODO: Increment the versionCode and versionName for each new release.
         versionCode = 1
         versionName = "1.0"
         multiDexEnabled = true
@@ -31,7 +34,7 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -94,8 +97,8 @@ dependencies {
 //    ksp("androidx.room:room-compiler:2.6.1")
     //ksp(libs.io.mcarle)
     //hilt for compose latest version
-    implementation(libs.hilt.android.v250)
-    ksp(libs.hilt.android.compiler.v250) // Hilt KSP 컴파일러
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler) // Hilt KSP 컴파일러
     implementation(libs.androidx.hilt.navigation.compose)
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")

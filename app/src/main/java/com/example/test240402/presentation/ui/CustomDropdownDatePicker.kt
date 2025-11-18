@@ -18,10 +18,11 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Calendar
+import java.util.Locale
 
 // 시간/분 단위를 두 자리 문자열로 포맷팅 (예: 7 -> "07") - 월, 일 표시에 사용 가능
 private fun formatTwoDigits(value: Int): String {
-    return String.format("%02d", value)
+    return String.format(Locale.getDefault(), "%02d", value)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,9 +126,6 @@ private fun DateDropdownSelector(
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = {
-            if (!expanded) {
-                onItemSelected(internalText)
-            }
             expanded = !expanded
         },
         modifier = modifier
@@ -143,7 +141,7 @@ private fun DateDropdownSelector(
             label = { Text(label) },
             textStyle = TextStyle(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface),
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
+            colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
@@ -163,7 +161,7 @@ private fun DateDropdownSelector(
             "년" -> {
                 val currentYear = Calendar.getInstance().get(Calendar.YEAR)
                 items.filter {
-                    // 1. 사용자가 입력한 숫자로 시작하고 (예: '202' -> 2020, 2021...)
+                    // 1. 사용자가 입력한 숫자로 시작하고 (예: '''202''' -> 2020, 2021...)
                     // 2. 현재 년도보다 크거나 같은 미래의 년도만 필터링합니다.
                     it.startsWith(internalText) && (it.toIntOrNull() ?: 0) >= currentYear
                 }
@@ -180,7 +178,6 @@ private fun DateDropdownSelector(
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = {
-                    onItemSelected(internalText)
                     expanded = false
                 },
                 modifier = Modifier.background(MaterialTheme.colorScheme.surface)
@@ -206,4 +203,3 @@ private fun DateDropdownSelector(
         }
     }
 }
-

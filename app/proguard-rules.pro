@@ -20,3 +20,25 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 -keep class com.example.test240402.presentation.ui.MainActivity { *; }
+
+# Hilt
+-keep class * implements dagger.hilt.internal.GeneratedComponent {
+    <init>();
+}
+-keep class * implements dagger.hilt.internal.GeneratedEntryPoint {
+    <init>();
+}
+-keep class * implements dagger.hilt.internal.GeneratedComponentManager {
+    <init>();
+}
+-keep class * implements dagger.hilt.internal.GeneratedComponentManagerHolder {
+    <init>();
+}
+-keep class dagger.hilt.internal.processedrootsentinel.ProcessedRootSentinel {
+    <init>();
+}
+-dontwarn dagger.hilt.android.**
+-dontwarn dagger.hilt.internal.processedrootsentinel.**
+
+# Keep all model classes
+-keep class com.example.test240402.model.** { *; }

@@ -1,4 +1,4 @@
-package com.example.test240402.data.datasource.local // 또는 data.local.dao 등 적절한 패키지
+package com.example.test240402.data.datasource.local
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -6,7 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
-import com.example.test240402.data.model.TodoEntity // Room 엔티티 클래스
+import com.example.test240402.data.model.TodoEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -17,7 +17,7 @@ interface TodoDao {
      * ID를 기준으로 내림차순 정렬하여 최신 아이템이 먼저 오도록 합니다.
      * Flow를 반환하여 데이터 변경 시 자동으로 UI에 반영될 수 있도록 합니다.
      */
-    @Query("SELECT * FROM todo_items ORDER BY id DESC") // "todo_items"는 TodoEntity에 정의된 테이블 이름
+    @Query("SELECT * FROM todo_items ORDER BY id DESC")
     fun getAllTodos(): Flow<List<TodoEntity>>
 
     /**
@@ -42,11 +42,6 @@ interface TodoDao {
     @Delete
     suspend fun deleteTodo(todoEntity: TodoEntity)
 
-    // 필요에 따라 특정 ID로 아이템을 가져오는 메서드 등을 추가할 수 있습니다.
-    // 예:
-    // @Query("SELECT * FROM todo_items WHERE id = :id")
-    // suspend fun getTodoById(id: Int): TodoEntity?
-    // --- 새로운 쿼리 예시 (재부팅 시 알람 재등록 등에 사용 가능) ---
     @Query("SELECT * FROM todo_items WHERE isAlarmEnabled = 1 AND alarmTime IS NOT NULL AND alarmTime > :currentTimeMillis")
     suspend fun getActiveScheduledAlarms(currentTimeMillis: Long): List<TodoEntity>
 }

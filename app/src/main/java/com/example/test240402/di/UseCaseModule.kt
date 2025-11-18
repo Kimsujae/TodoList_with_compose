@@ -16,10 +16,10 @@ object UseCaseModule {
     @Provides
     fun provideGetTodosUseCase(todoRepository: TodoRepository): GetTodosUseCase {
         return GetTodosUseCase(todoRepository)
-
     }
+
     @Provides
-    fun provideAddTodoUseCase(todoRepository: TodoRepository): InsertTodoUseCase {
+    fun provideInsertTodoUseCase(todoRepository: TodoRepository): InsertTodoUseCase {
         return InsertTodoUseCase(todoRepository)
     }
 
