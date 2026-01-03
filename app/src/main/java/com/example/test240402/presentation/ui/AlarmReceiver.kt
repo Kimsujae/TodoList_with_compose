@@ -69,7 +69,6 @@ class AlarmReceiver : BroadcastReceiver() {
         // 알림 ID는 고유해야 함 (여기서도 todoId 사용 가능)
         notificationManager.notify(todoId, notification)
 
-        // TODO: (선택사항) 알람이 울린 후 해당 TodoItem의 isAlarmEnabled를 false로 업데이트하거나, 반복 알람이 아니라면 DB에서 알람 정보 제거
     }
 
     private fun createNotificationChannel(context: Context) {

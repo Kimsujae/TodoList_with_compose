@@ -10,7 +10,6 @@ interface TodoRepository {
     suspend fun deleteTodo(todoItem: TodoItem)
 
     suspend fun getActiveScheduledAlarms(currentTimeMillis: Long): List<TodoItem>
-    // 필요하다면 ID로 Todo 가져오기 등 추가
     // suspend fun getTodoById(id: Int): TodoItem?
 }
             

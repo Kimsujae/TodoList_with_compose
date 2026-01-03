@@ -1,8 +1,8 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
-    id("com.google.devtools.ksp")
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -10,28 +10,18 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        // TODO: Replace with a unique applicationId for the Google Play Store.
-        applicationId = "com.example.test240402"
-        // TODO: Consider lowering the minSdk version to support more devices.
-        minSdk = 34
+        applicationId = "com.handmadekim.test240402"
+        minSdk = 28
         targetSdk = 35
-        // TODO: Increment the versionCode and versionName for each new release.
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "2.0"
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+    }
 
-    }
-    applicationVariants.all {
-        kotlin.sourceSets{
-            getByName(name){
-                kotlin.srcDir("build/generated/ksp/$name/kotlin")
-            }
-        }
-    }
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -53,7 +43,7 @@ android {
         buildConfig = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
     }
     packaging {
         resources {
@@ -74,8 +64,6 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.appcompat)
-//    implementation(libs.androidx.media3.common.ktx)
-//    implementation(libs.androidx.material3.android)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -85,21 +73,16 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    val room_version = "2.6.1"
-    implementation("androidx.room:room-runtime:$room_version")
-    ksp("androidx.room:room-compiler:$room_version")
-    annotationProcessor("androidx.room:room-compiler:$room_version")
-    implementation("androidx.room:room-ktx:$room_version")
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
-//    implementation(libs.room.ktx)
-//    implementation("androidx.room:room-runtime:2.6.1")
-//    annotationProcessor("androidx.room:room-compiler:2.6.1")
-//    ksp("androidx.room:room-compiler:2.6.1")
-    //ksp(libs.io.mcarle)
-    //hilt for compose latest version
+    // Hilt
     implementation(libs.hilt.android)
-    ksp(libs.hilt.compiler) // Hilt KSP 컴파일러
+    ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.android)
 }

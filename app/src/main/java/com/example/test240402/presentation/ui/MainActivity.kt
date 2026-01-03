@@ -5,7 +5,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import android.annotation.SuppressLint
 import android.app.AlarmManager
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -481,7 +480,7 @@ fun MainView(navController: NavController, viewModel: MainViewModel = hiltViewMo
                                     tempSelectedMonth != (initialDateCalendar.get(Calendar.MONTH) + 1) ||
                                     tempSelectedDay != initialDateCalendar.get(Calendar.DAY_OF_MONTH) ||
                                     itemToEdit?.alarmTime != null
-                                ) { 
+                                ) {
                                     Calendar.getInstance().apply {
                                         set(Calendar.YEAR, tempSelectedYear)
                                         set(Calendar.MONTH, tempSelectedMonth - 1)
@@ -596,15 +595,37 @@ fun InputView(navController: NavController) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var selectedAlarmTimeMillis by remember { mutableStateOf<Long?>(null) } // 초기값은 null (설정 안 함)
-    var isAlarmEnabled by remember { mutableStateOf(false) }               // 초기값은 false (비활성화)
-
-    val currentCalendar = Calendar.getInstance()
+    var isAlarmEnabled by remember { mutableStateOf(false) }
 
     val content by viewModel.content.collectAsState()
     val memo by viewModel.memo.collectAsState()
+
+    val initialDateCalendar = remember {
+        Calendar.getInstance()
+    }
+    var tempSelectedYear by remember {
+        mutableIntStateOf(initialDateCalendar.get(Calendar.YEAR))
+    }
+    var tempSelectedMonth by remember {
+        mutableIntStateOf(initialDateCalendar.get(Calendar.MONTH) + 1)
+    }
+    var tempSelectedDay by remember {
+        mutableIntStateOf(initialDateCalendar.get(Calendar.DAY_OF_MONTH))
+    }
+
+    val initialTimeCalendar = remember {
+        Calendar.getInstance()
+    }
+    var tempSelectedHour by remember {
+        mutableIntStateOf(initialTimeCalendar.get(Calendar.HOUR_OF_DAY))
+    }
+    var tempSelectedMinute by remember {
+        mutableIntStateOf(initialTimeCalendar.get(Calendar.MINUTE))
+    }
+
+    val dateTimeFormatter = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+
+
     Scaffold(
 
         topBar = {
@@ -655,26 +676,11 @@ fun InputView(navController: NavController) {
                     .defaultMinSize(minHeight = 120.dp),
                 maxLines = 5
             )
-            Text("알람 설정 ", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = {
-                    showDatePicker = true
-                }, modifier = Modifier.fillMaxWidth()
-            ) {
-                val buttonText = if (selectedAlarmTimeMillis != null && isAlarmEnabled) {
-                    "알람: ${
-                        SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.getDefault()).format(
-                            Date(
-                                selectedAlarmTimeMillis!!
-                            )
-                        )
-                    }"
-                } else {
-                    "알람 시간 설정하기"
-                }
-                Text(buttonText)
-            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("알람 설정", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(
@@ -683,127 +689,101 @@ fun InputView(navController: NavController) {
                 Text("알람 활성화", modifier = Modifier.weight(1f))
                 Switch(
                     checked = isAlarmEnabled,
-                    onCheckedChange = { checked ->
-                        isAlarmEnabled = checked
-                        if (!checked) {
-                            selectedAlarmTimeMillis = null
-                        }
-                    },
+                    onCheckedChange = { isAlarmEnabled = it },
                 )
             }
-            if (showDatePicker) {
-                val datePickerState = rememberDatePickerState( // Material 3 DatePickerState
-                    initialSelectedDateMillis = selectedAlarmTimeMillis
-                        ?: System.currentTimeMillis()
+
+            if (isAlarmEnabled) {
+                Spacer(modifier = Modifier.height(8.dp))
+                CustomDropdownDatePicker(
+                    initialDateMillis = System.currentTimeMillis(),
+                    onDateSelected = { year, month, day ->
+                        tempSelectedYear = year
+                        tempSelectedMonth = month
+                        tempSelectedDay = day
+                    },
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
-                DatePickerDialog(
-                    onDismissRequest = { showDatePicker = false },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                showDatePicker = false
-                                datePickerState.selectedDateMillis?.let {
-                                    val cal = Calendar.getInstance().apply { timeInMillis = it }
-                                    val currentHour =
-                                        if (selectedAlarmTimeMillis != null) Calendar.getInstance()
-                                            .apply { timeInMillis = selectedAlarmTimeMillis!! }
-                                            .get(Calendar.HOUR_OF_DAY) else 12
-                                    val currentMinute =
-                                        if (selectedAlarmTimeMillis != null) Calendar.getInstance()
-                                            .apply { timeInMillis = selectedAlarmTimeMillis!! }
-                                            .get(Calendar.MINUTE) else 0
-                                    cal.set(Calendar.HOUR_OF_DAY, currentHour)
-                                    cal.set(Calendar.MINUTE, currentMinute)
-                                    cal.set(Calendar.SECOND, 0)
-                                    cal.set(Calendar.MILLISECOND, 0)
-                                    selectedAlarmTimeMillis = cal.timeInMillis
-                                    showTimePicker = true // 날짜 선택 후 바로 시간 선택기 표시
-                                }
-                            }) { Text("확인") }
-                    }, dismissButton = {
-                        TextButton(onClick = {
-                            showDatePicker = false
-                        }) { Text("취소") }
-                    }) {
-                    DatePicker(state = datePickerState)
+
+                Spacer(modifier = Modifier.height(8.dp))
+                CustomDropdownTimePicker(
+                    initialHour = tempSelectedHour,
+                    initialMinute = tempSelectedMinute,
+                    onTimeSelected = { hour, minute ->
+                        tempSelectedHour = hour
+                        tempSelectedMinute = minute
+                    },
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                val combinedDateTimeMillis = remember(
+                    tempSelectedYear,
+                    tempSelectedMonth,
+                    tempSelectedDay,
+                    tempSelectedHour,
+                    tempSelectedMinute
+                ) {
+                    Calendar.getInstance().apply {
+                        set(Calendar.YEAR, tempSelectedYear)
+                        set(Calendar.MONTH, tempSelectedMonth - 1)
+                        set(Calendar.DAY_OF_MONTH, tempSelectedDay)
+                        set(Calendar.HOUR_OF_DAY, tempSelectedHour)
+                        set(Calendar.MINUTE, tempSelectedMinute)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }.timeInMillis
                 }
+                Text(
+                    text = "선택된 알람: ${dateTimeFormatter.format(Date(combinedDateTimeMillis))}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "알람이 비활성화되어 있습니다.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                 // 레이아웃 유지를 위해 높이 Spacer (조정 필요)
+                Spacer(modifier = Modifier.height(150.dp))
             }
 
-            if (showTimePicker) {
-                val initialHour = if (selectedAlarmTimeMillis != null) {
-                    Calendar.getInstance().apply { timeInMillis = selectedAlarmTimeMillis!! }
-                        .get(Calendar.HOUR_OF_DAY)
-                } else {
-                    currentCalendar.get(Calendar.HOUR_OF_DAY)
-                }
-                val initialMinute = if (selectedAlarmTimeMillis != null) {
-                    Calendar.getInstance().apply { timeInMillis = selectedAlarmTimeMillis!! }
-                        .get(Calendar.MINUTE)
-                } else {
-                    currentCalendar.get(Calendar.MINUTE)
-                }
 
-                val timePickerState = rememberTimePickerState(
-                    initialHour = initialHour,
-                    initialMinute = initialMinute,
-                    is24Hour = false // 24시간 형식 사용 여부
-                )
-                AlertDialog(
-                    onDismissRequest = { showTimePicker = false },
-                    title = { Text("알람 시간 선택") },
-                    text = {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center
-                        ) {
-                            TimePicker(state = timePickerState)
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                val cal = Calendar.getInstance()
-                                if (selectedAlarmTimeMillis != null) {
-                                    cal.timeInMillis = selectedAlarmTimeMillis!! // 기존 날짜 유지
-                                } else {
-                                    cal.timeInMillis = System.currentTimeMillis()
-                                }
-                                cal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                                cal.set(Calendar.MINUTE, timePickerState.minute)
-                                cal.set(Calendar.SECOND, 0)
-                                cal.set(Calendar.MILLISECOND, 0)
 
-                                val now =System.currentTimeMillis()
-                                if (cal.timeInMillis <= now) {
-                                    scope.launch { snackbarHostState.showSnackbar("알람은 현재 시간 이후로 설정해야 합니다.") }
-                                    selectedAlarmTimeMillis = now
-                                }else{
-                                    selectedAlarmTimeMillis = cal.timeInMillis
-                                }
-                                isAlarmEnabled = true // 시간을 설정하면 알람을 자동으로 활성화 (선택 사항)
-                                showTimePicker = false
-                                Log.d(
-                                    "InputView",
-                                    "Selected Alarm DateTime: ${Date(selectedAlarmTimeMillis!!)}"
-                                )
-                            }) { Text("확인") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            showTimePicker = false
-                        }) { Text("취소") }
-                    })
-            }
             Spacer(modifier = Modifier.weight(1f)) // 저장 버튼을 하단으로 밀기
 
             Button(
                 onClick = {
+                    val finalAlarmTimeMillis = if (isAlarmEnabled) {
+                        val calendar = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, tempSelectedYear)
+                            set(Calendar.MONTH, tempSelectedMonth - 1)
+                            set(Calendar.DAY_OF_MONTH, tempSelectedDay)
+                            set(Calendar.HOUR_OF_DAY, tempSelectedHour)
+                            set(Calendar.MINUTE, tempSelectedMinute)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        if (calendar.timeInMillis > System.currentTimeMillis()) {
+                            calendar.timeInMillis
+                        } else {
+                            scope.launch { snackbarHostState.showSnackbar("알람은 현재 시간 이후로 설정해야 합니다.") }
+                            null
+                        }
+                    } else {
+                        null
+                    }
+
+
                     if (content.isNotBlank()) {
                         // ViewModel의 insertData 함수에 알람 정보도 함께 전달
                         viewModel.insertData( // ViewModel의 insertData 시그니처 변경 필요
                             content = content,
                             memo = memo,
-                            alarmTime = if (isAlarmEnabled) selectedAlarmTimeMillis else null,
-                            isAlarmEnabled = isAlarmEnabled
+                            alarmTime = finalAlarmTimeMillis,
+                            isAlarmEnabled = isAlarmEnabled && finalAlarmTimeMillis != null
                         )
                         navController.popBackStack()
                     } else {
