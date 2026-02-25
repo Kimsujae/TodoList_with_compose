@@ -28,7 +28,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -411,6 +410,7 @@ fun InputView(navController: NavController) {
 }
 
 // 할 일 추가/수정 시 위치를 선택하기 위한 지도 다이얼로그
+@SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationPickerDialog(initialLocation: LatLng? = null, initialPlaceName: String = "", onLocationSelected: (Double, Double, String) -> Unit, onDismiss: () -> Unit) {
