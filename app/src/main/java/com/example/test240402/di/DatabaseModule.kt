@@ -16,14 +16,10 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun providesDataBase(@ApplicationContext context: Context):AppDatabase{
-//        Log.d("데이터베이스생성","생성완료")
-        return Room.databaseBuilder(context,AppDatabase::class.java,"todo.db")
-//            .addMigrations(AppDatabase.MIGRATION_1_2,AppDatabase.MIGRATION_2_3)
-//            .addMigrations(AppDatabase.MIGRATION_1_2)
-            .fallbackToDestructiveMigration()
+    fun providesDataBase(@ApplicationContext context: Context): AppDatabase {
+        return Room.databaseBuilder(context, AppDatabase::class.java, "todo.db")
+            .addMigrations(AppDatabase.MIGRATION_2_3) // 버전 2 -> 3 마이그레이션 추가
+            .fallbackToDestructiveMigration() // 적절한 마이그레이션이 없는 경우만 초기화
             .build()
     }
-//    @Provides
-//    fun provideTodoDao(database: AppDatabase) = database.todoDao()
 }

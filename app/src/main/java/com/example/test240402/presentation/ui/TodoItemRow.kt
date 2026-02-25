@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -43,23 +44,20 @@ fun TodoItemRow(
     onRequestEditItem: (TodoItem) -> Unit
 ) {
     val itemBackgroundColor = if (currentItem.isDone) {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) // 완료 시 약간 흐리게
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     } else {
-        MaterialTheme.colorScheme.surface // 기본 카드 배경
+        MaterialTheme.colorScheme.surface
     }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp) // 카드 간 간격
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .combinedClickable(
                 onClick = {
-                    // 짧은 클릭 시 완료 상태 토글
-                    Log.d("TodoItemRow", "Card onClick for: ${currentItem.content} (Toggle isDone)")
                     onUpdateItem(currentItem.copy(isDone = !currentItem.isDone))
                 },
                 onLongClick = {
-                    Log.d("TodoItemRow", "Card onLongClick for DELETE: ${currentItem.content}")
                     onRequestDeleteItem(currentItem)
                 }
             ),
@@ -68,13 +66,12 @@ fun TodoItemRow(
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp), // 카드 내부 패딩
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = currentItem.isDone,
                 onCheckedChange = { checked ->
-                    Log.d("TodoItemRow", "Checkbox for '${currentItem.content}' changed to: $checked")
                     onUpdateItem(currentItem.copy(isDone = checked))
                 },
                 colors = CheckboxDefaults.colors(
@@ -86,9 +83,9 @@ fun TodoItemRow(
 
             Column(modifier = Modifier.weight(1f)) {
                 val textColor = if (currentItem.isDone) {
-                    MaterialTheme.colorScheme.onSurfaceVariant // 완료 시 텍스트도 약간 연하게
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
-                    MaterialTheme.colorScheme.onSurface // 기본 텍스트 색상
+                    MaterialTheme.colorScheme.onSurface
                 }
                 val textDecoration = if (currentItem.isDone) TextDecoration.LineThrough else null
 
@@ -110,39 +107,56 @@ fun TodoItemRow(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                if (currentItem.isAlarmEnabled && currentItem.alarmTime != null) {
-                    Spacer(modifier = Modifier.height(6.dp)) // 메모와 알람 시간 사이 간격
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (currentItem.isAlarmEnabled && currentItem.alarmTime != null) {
                         Icon(
                             imageVector = Icons.Filled.Star,
-                            contentDescription = "알람 설정 시간",
-                            modifier = Modifier.size(16.dp), // 아이콘 크기
+                            contentDescription = "알람 시간",
+                            modifier = Modifier.size(14.dp),
                             tint = if (currentItem.isDone) textColor.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = SimpleDateFormat(
-                                "MM.dd HH:mm",
-                                Locale.getDefault()
-                            ).format(Date(currentItem.alarmTime)),
+                            text = SimpleDateFormat("MM.dd HH:mm", Locale.getDefault()).format(Date(currentItem.alarmTime)),
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = if (currentItem.isDone) textColor.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary
                             ),
-                            textDecoration = textDecoration // 알람 시간에도 취소선 적용
+                            textDecoration = textDecoration
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+
+                    // 장소 정보 표시 추가
+                    if (currentItem.placeName != null) {
+                        Icon(
+                            imageVector = Icons.Filled.LocationOn,
+                            contentDescription = "장소",
+                            modifier = Modifier.size(14.dp),
+                            tint = if (currentItem.isDone) textColor.copy(alpha = 0.7f) else MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text(
+                            text = currentItem.placeName,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = if (currentItem.isDone) textColor.copy(alpha = 0.7f) else MaterialTheme.colorScheme.secondary
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textDecoration = textDecoration
                         )
                     }
                 }
             }
-            Spacer(modifier = Modifier.width(8.dp)) // 텍스트와 버튼 사이 간격
+            Spacer(modifier = Modifier.width(8.dp))
 
             IconButton(onClick = {
-                Log.d("TodoItemRow", "Edit IconButton clicked for: ${currentItem.content}")
                 onRequestEditItem(currentItem)
             }) {
                 Icon(
                     imageVector = Icons.Filled.Edit,
                     contentDescription = "수정",
-                    tint = MaterialTheme.colorScheme.primary // 아이콘 색상도 테마에 맞게
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
         }

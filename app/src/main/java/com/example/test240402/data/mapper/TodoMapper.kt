@@ -12,7 +12,10 @@ object TodoMapper {
             isDone = this.isDone,
             createdAt = this.createdAt,
             alarmTime = this.alarmTime,
-            isAlarmEnabled = this.isAlarmEnabled
+            isAlarmEnabled = this.isAlarmEnabled,
+            latitude = this.latitude,
+            longitude = this.longitude,
+            placeName = this.placeName
         )
     }
 
@@ -24,14 +27,10 @@ object TodoMapper {
             isDone = this.isDone,
             createdAt = this.createdAt,
             alarmTime = this.alarmTime,
-            isAlarmEnabled = this.isAlarmEnabled
+            isAlarmEnabled = this.isAlarmEnabled,
+            latitude = this.latitude,
+            longitude = this.longitude,
+            placeName = this.placeName
         )
     }
-//    fun mapToDomainList(entities: List<TodoEntity>): List<DomainTodoItem> {
-//        return entities.map { mapToDomain(it) }
-//    }
-//
-//    fun mapToEntityList(domainModels: List<DomainTodoItem>): List<TodoEntity> {
-//        return domainModels.map { mapToEntity(it) }
-//    }
 }

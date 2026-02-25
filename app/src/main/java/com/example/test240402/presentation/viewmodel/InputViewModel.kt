@@ -1,18 +1,14 @@
 package com.example.test240402.presentation.viewmodel
 
 import android.util.Log
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.test240402.domain.model.TodoItem
 import com.example.test240402.domain.usecase.InsertTodoUseCase
-import com.example.test240402.domain.usecase.UpdateTodoUseCase
 import com.example.test240402.presentation.ui.AlarmScheduler
-//import com.example.test240402.model.ContentEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,17 +26,18 @@ class InputViewModel @Inject constructor(
     private val _content = MutableStateFlow("")
     val content: StateFlow<String> = _content.asStateFlow()
 
-    private val _memo = MutableStateFlow("") // 메모가 null이 될 수 없다면 String으로 유지
+    private val _memo = MutableStateFlow("")
     val memo: StateFlow<String> = _memo.asStateFlow()
-//    var content = MutableLiveData<String>()
-//    var memo = MutableLiveData<String?>()
-//    var item: ContentEntity? = null
 
-//    fun initData(item: ContentEntity) {
-//        this.item = item
-//        content.value = item.content
-//        memo.value = item.memo
-//    }
+    private val _latitude = MutableStateFlow<Double?>(null)
+    val latitude: StateFlow<Double?> = _latitude.asStateFlow()
+
+    private val _longitude = MutableStateFlow<Double?>(null)
+    val longitude: StateFlow<Double?> = _longitude.asStateFlow()
+
+    private val _placeName = MutableStateFlow<String?>(null)
+    val placeName: StateFlow<String?> = _placeName.asStateFlow()
+
     fun updateContent(newContent: String) {
         _content.value = newContent
     }
@@ -49,56 +46,46 @@ class InputViewModel @Inject constructor(
         _memo.value = newMemo
     }
 
-
+    fun updateLocation(lat: Double?, lng: Double?, name: String?) {
+        _latitude.value = lat
+        _longitude.value = lng
+        _placeName.value = name
+    }
 
     fun insertData(
-        content: String, // UI에서 직접 받은 content 값
-        memo: String,    // UI에서 직접 받은 memo 값
+        content: String,
+        memo: String,
         alarmTime: Long?,
-        isAlarmEnabled: Boolean) {
+        isAlarmEnabled: Boolean,
+        latitude: Double? = null,
+        longitude: Double? = null,
+        placeName: String? = null
+    ) {
         if (content.isNotBlank() ) {
-            val newTodo = TodoItem( // id는 Repository 또는 DB에서 자동 생성되도록 할 수 있음
-                content = _content.value,
-                memo = memo.ifEmpty { null }, // 비어있으면 null로
+            val newTodo = TodoItem(
+                content = content,
+                memo = memo.ifEmpty { null },
                 isDone = false,
                 alarmTime = alarmTime,
-                isAlarmEnabled = isAlarmEnabled
+                isAlarmEnabled = isAlarmEnabled,
+                latitude = latitude ?: _latitude.value,
+                longitude = longitude ?: _longitude.value,
+                placeName = placeName ?: _placeName.value
             )
             viewModelScope.launch {
                 Log.d("!로그 데이터베이스저장","$newTodo")
                 insertTodoUseCase(newTodo)
 
-
                 if(newTodo.isAlarmEnabled && newTodo.alarmTime!= null){
                     if(newTodo.alarmTime > System.currentTimeMillis()){
                         alarmScheduler.schedule(newTodo)
                     }
-                    else{
-                        //Log.d(Log.d("InputViewModel", "Alarm time is in the past, not scheduling: $newTodo"))
-                    }
-                }else{
-                    //Log.d(Log.d("InputViewModel", "Alarm is disabled or time is null, not scheduling: $newTodo"))
                 }
 
                 _content.value = ""
                 _memo.value = ""
-
-                // _doneEvent.postValue(Unit)
+                updateLocation(null, null, null)
             }
         }
     }
-//    fun insertData() {
-//        content.value?.let { content ->
-//            viewModelScope.launch(Dispatchers.IO) {
-////                initData(item ?: ContentEntity(content = content, memo = memo.value))
-//                contentRepository.insert(
-//                    item?.copy(content = content, memo = memo.value)
-//                        ?: ContentEntity(content = content, memo = memo.value)
-//                )
-//                Log.d("데이터베이스 저장", "저장확인 $content,${memo.value}")
-//                _doneEvent.postValue(Unit)
-//            }
-//
-//        }
-//    }
 }

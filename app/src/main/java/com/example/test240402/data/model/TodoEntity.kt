@@ -12,5 +12,8 @@ data class TodoEntity(
     val isDone: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val alarmTime: Long? = null,
-    val isAlarmEnabled: Boolean = false
+    val isAlarmEnabled: Boolean = false,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val placeName: String? = null
 )
