@@ -14,8 +14,8 @@ android {
         applicationId = "com.handmadekim.test240402"
         minSdk = 28
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 3
+        versionName = "3.0"
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -91,4 +91,6 @@ dependencies {
     implementation(libs.google.maps.compose)
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
+
+    implementation(libs.androidx.compose.material.icons.extended)
 }
