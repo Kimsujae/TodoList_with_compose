@@ -522,6 +522,7 @@ fun Calendar.setSecondMillisecondZero(millis: Long): Long {
     return cal.timeInMillis
 }
 
+@SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationPickerDialog(initialLocation: LatLng? = null, initialPlaceName: String = "", onLocationSelected: (Double, Double, String) -> Unit, onDismiss: () -> Unit) {
