@@ -26,7 +26,7 @@ interface TodoDao {
      * @param todoEntity 삽입할 할 일 엔티티.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTodo(todoEntity: TodoEntity)
+    suspend fun insertTodo(todoEntity: TodoEntity): Long
 
     /**
      * 기존 할 일 아이템을 업데이트합니다.

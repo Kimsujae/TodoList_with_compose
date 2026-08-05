@@ -22,6 +22,12 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        // 부팅 완료 액션이나 앱 재시작 시의 유령 알람 방지를 위해 액션 체크
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            Log.d("AlarmReceiver", "BOOT_COMPLETED received but ignored to prevent ghost alarms.")
+            return
+        }
+
         val todoId = intent.getIntExtra(EXTRA_TODO_ID, -1)
         val todoContent = intent.getStringExtra(EXTRA_TODO_CONTENT) ?: "할 일이 있습니다!"
         val todoMemo = intent.getStringExtra(EXTRA_TODO_MEMO) ?: "메모가 있습니다!"

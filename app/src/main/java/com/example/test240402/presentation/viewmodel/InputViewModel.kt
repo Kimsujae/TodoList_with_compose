@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.test240402.domain.model.TodoItem
 import com.example.test240402.domain.usecase.InsertTodoUseCase
 import com.example.test240402.presentation.ui.AlarmScheduler
+import com.example.test240402.presentation.ui.GeofenceScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class InputViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
+    private val geofenceScheduler: GeofenceScheduler,
     private val insertTodoUseCase: InsertTodoUseCase
 ) : ViewModel() {
     private val _doneEvent = MutableLiveData<Unit>()
@@ -62,24 +64,32 @@ class InputViewModel @Inject constructor(
         placeName: String? = null
     ) {
         if (content.isNotBlank() ) {
-            val newTodo = TodoItem(
-                content = content,
-                memo = memo.ifEmpty { null },
-                isDone = false,
-                alarmTime = alarmTime,
-                isAlarmEnabled = isAlarmEnabled,
-                latitude = latitude ?: _latitude.value,
-                longitude = longitude ?: _longitude.value,
-                placeName = placeName ?: _placeName.value
-            )
             viewModelScope.launch {
-                Log.d("!로그 데이터베이스저장","$newTodo")
-                insertTodoUseCase(newTodo)
+                val newTodo = TodoItem(
+                    content = content,
+                    memo = memo.ifEmpty { null },
+                    isDone = false,
+                    alarmTime = alarmTime,
+                    isAlarmEnabled = isAlarmEnabled,
+                    latitude = latitude ?: _latitude.value,
+                    longitude = longitude ?: _longitude.value,
+                    placeName = placeName ?: _placeName.value
+                )
+                
+                // DB 저장 (id가 생성됨)
+                val id = insertTodoUseCase(newTodo).toInt()
+                val todoWithId = newTodo.copy(id = id)
 
-                if(newTodo.isAlarmEnabled && newTodo.alarmTime!= null){
-                    if(newTodo.alarmTime > System.currentTimeMillis()){
-                        alarmScheduler.schedule(newTodo)
+                // 알람 등록
+                if(todoWithId.isAlarmEnabled && todoWithId.alarmTime != null){
+                    if(todoWithId.alarmTime > System.currentTimeMillis()){
+                        alarmScheduler.schedule(todoWithId)
                     }
+                }
+
+                // 지오펜싱 등록 (위치 정보가 있을 때만)
+                if (todoWithId.latitude != null && todoWithId.longitude != null) {
+                    geofenceScheduler.schedule(todoWithId)
                 }
 
                 _content.value = ""

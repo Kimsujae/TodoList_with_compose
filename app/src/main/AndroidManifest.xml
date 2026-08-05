@@ -4,14 +4,13 @@
     package="com.example.test240402">
 
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <!-- Android 13(T) 이상, 알림을 표시하려면 필요 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- 재부팅 후 알람 재등록을 위해 필요 -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" /> -->
 
-    <!-- Google Maps 권한 -->
+    <!-- Google Maps & Geofencing 권한 -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -25,8 +24,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         tools:replace="android:allowBackup">
-        <!--        android:android.supportsRtl="true"-->
-
 
         <!-- Google Maps API Key -->
         <meta-data
@@ -46,11 +43,13 @@
         <receiver
             android:name=".presentation.ui.AlarmReceiver"
             android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
+            android:exported="true" />
+
+        <!-- 지오펜싱 이벤트를 받을 리시버 추가 -->
+        <receiver
+            android:name=".presentation.ui.GeofenceBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true" />
     </application>
 
 </manifest>

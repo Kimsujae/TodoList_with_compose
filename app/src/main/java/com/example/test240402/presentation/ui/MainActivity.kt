@@ -28,7 +28,6 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.test240402.BuildConfig
 import com.example.test240402.presentation.viewmodel.MainViewModel
 import com.example.test240402.ui.theme.Test240402Theme
 import com.google.android.gms.location.LocationServices
@@ -122,15 +121,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleGhostAlarmsOnFirstRun() {
-        if (BuildConfig.DEBUG) {
-            val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
-            val isFirstRun = prefs.getBoolean("isFirstRun", true)
-            if (isFirstRun) {
-                val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
-                val scheduler = AlarmSchedulerImpl(applicationContext, alarmManager)
-                scheduler.cancelAllAlarms()
-                prefs.edit().putBoolean("isFirstRun", false).apply()
-            }
+        val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        val isFirstRun = prefs.getBoolean("isFirstRun", true)
+        if (isFirstRun) {
+            val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
+            val scheduler = AlarmSchedulerImpl(applicationContext, alarmManager)
+            scheduler.cancelAllAlarms()
+            prefs.edit().putBoolean("isFirstRun", false).apply()
         }
     }
 }

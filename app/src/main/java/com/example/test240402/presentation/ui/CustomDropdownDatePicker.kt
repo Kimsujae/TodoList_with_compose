@@ -149,7 +149,7 @@ private fun DateDropdownSelector(
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ),
             modifier = Modifier
-                .menuAnchor()
+                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryEditable, enabled = true)
                 .fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)

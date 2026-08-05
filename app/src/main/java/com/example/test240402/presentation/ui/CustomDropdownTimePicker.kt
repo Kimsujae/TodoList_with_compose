@@ -133,18 +133,16 @@ fun DropdownSelector(
             label = { Text(label) },
             textStyle = TextStyle(fontSize = fontSize, color = MaterialTheme.colorScheme.onSurface), // 값 텍스트 색상
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            colors = TextFieldDefaults.outlinedTextFieldColors(
+            colors = OutlinedTextFieldDefaults.colors(
                 // 명시적 색상 설정
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline,
                 disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                // textColor = MaterialTheme.colorScheme.onSurface, // textStyle에서 이미 지정
-                // cursorColor = MaterialTheme.colorScheme.primary
             ),
             modifier = Modifier
-                .menuAnchor()
+                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                 .fillMaxWidth(),
             singleLine = true,
         )

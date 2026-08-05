@@ -4,6 +4,8 @@ import android.app.AlarmManager
 import android.content.Context
 import com.example.test240402.presentation.ui.AlarmScheduler
 import com.example.test240402.presentation.ui.AlarmSchedulerImpl
+import com.example.test240402.presentation.ui.GeofenceScheduler
+import com.example.test240402.presentation.ui.GeofenceSchedulerImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,15 +21,22 @@ object SchedulerModule {
     @Singleton
     fun provideAlarmManager(@ApplicationContext context: Context): AlarmManager {
         return context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
     }
+
     @Provides
     @Singleton
     fun provideAlarmScheduler(
         @ApplicationContext context: Context,
-        alarmManager: AlarmManager // Hilt가 위 함수(provideAlarmManager)를 통해 자동으로 주입해 줌
+        alarmManager: AlarmManager
     ): AlarmScheduler {
         return AlarmSchedulerImpl(context, alarmManager)
     }
 
+    @Provides
+    @Singleton
+    fun provideGeofenceScheduler(
+        @ApplicationContext context: Context
+    ): GeofenceScheduler {
+        return GeofenceSchedulerImpl(context)
+    }
 }
