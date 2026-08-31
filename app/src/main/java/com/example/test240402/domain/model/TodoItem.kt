@@ -10,5 +10,6 @@ data class TodoItem(
     val isAlarmEnabled: Boolean = false,
     val latitude: Double? = null,    // 위도 추가
     val longitude: Double? = null,   // 경도 추가
-    val placeName: String? = null    // 장소 이름 추가
+    val placeName: String? = null,   // 장소 이름 추가
+    val isMissed: Boolean = false    // 처리하지 못한 알람 여부
 )

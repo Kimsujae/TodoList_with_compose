@@ -15,8 +15,8 @@ android {
         applicationId = "com.handmadekim.test240402"
         minSdk = 28
         targetSdk = 37
-        versionCode = 5
-        versionName = "5.0"
+        versionCode = 6
+        versionName = "6.0"
         multiDexEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

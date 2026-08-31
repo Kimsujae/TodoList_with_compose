@@ -26,6 +26,7 @@ import com.example.test240402.presentation.viewmodel.InputViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -209,7 +210,7 @@ fun InputView(navController: NavController) {
                         Text(
                             if (selectedAlarmTimeMillis != null) SimpleDateFormat(
                                 "HH:mm",
-                                Locale.getDefault()
+                                LocalLocale.current.platformLocale
                             ).format(Date(selectedAlarmTimeMillis!!)) else "활 쏴서 시간 정하기"
                         )
                     }
