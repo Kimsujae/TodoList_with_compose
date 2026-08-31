@@ -18,8 +18,8 @@ object DatabaseModule {
     @Singleton
     fun providesDataBase(@ApplicationContext context: Context): AppDatabase {
         return Room.databaseBuilder(context, AppDatabase::class.java, "todo.db")
-            .addMigrations(AppDatabase.MIGRATION_2_3) // 버전 2 -> 3 마이그레이션 추가
-            .fallbackToDestructiveMigration() // 적절한 마이그레이션이 없는 경우만 초기화
+            .addMigrations(AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
+            .fallbackToDestructiveMigration()
             .build()
     }
 }

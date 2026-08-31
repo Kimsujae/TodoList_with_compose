@@ -93,6 +93,18 @@ fun MainView(navController: NavController, viewModel: MainViewModel = hiltViewMo
                     )
                 },
                 actions = {
+                    val missedCount = contentList.count { it.isMissed && !it.isDone }
+                    IconButton(onClick = { navController.navigate("MissedTodoView") }) {
+                        BadgedBox(
+                            badge = {
+                                if (missedCount > 0) {
+                                    Badge { Text(missedCount.toString()) }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Filled.History, contentDescription = "처리 못한 할 일")
+                        }
+                    }
                     IconButton(onClick = {
                         val hasLocationPermission = ContextCompat.checkSelfPermission(
                             context,
@@ -144,7 +156,7 @@ fun MainView(navController: NavController, viewModel: MainViewModel = hiltViewMo
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
-                    items(items = contentList, key = { todoItem -> todoItem.id }) { currentItem ->
+                    items(items = contentList.filter { !it.isMissed || it.isDone }, key = { todoItem -> todoItem.id }) { currentItem ->
                         TodoItemRow(
                             currentItem = currentItem,
                             onUpdateItem = { viewModel.updateItem(it) },

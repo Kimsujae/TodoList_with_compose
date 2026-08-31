@@ -139,6 +139,7 @@ fun MainAndInputScreen(mainViewModel: MainViewModel) {
         composable("MainView") { MainView(navController = navController, viewModel = mainViewModel) }
         composable("InputView") { InputView(navController = navController) }
         composable("MapView") { MapView(navController = navController) }
+        composable("MissedTodoView") { MissedTodoScreen(navController = navController, viewModel = mainViewModel) }
     }
 }
 

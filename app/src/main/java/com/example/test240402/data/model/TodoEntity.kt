@@ -15,5 +15,6 @@ data class TodoEntity(
     val isAlarmEnabled: Boolean = false,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val placeName: String? = null
+    val placeName: String? = null,
+    val isMissed: Boolean = false
 )

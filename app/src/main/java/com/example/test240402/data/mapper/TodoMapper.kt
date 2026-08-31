@@ -15,7 +15,8 @@ object TodoMapper {
             isAlarmEnabled = this.isAlarmEnabled,
             latitude = this.latitude,
             longitude = this.longitude,
-            placeName = this.placeName
+            placeName = this.placeName,
+            isMissed = this.isMissed
         )
     }
 
@@ -30,7 +31,8 @@ object TodoMapper {
             isAlarmEnabled = this.isAlarmEnabled,
             latitude = this.latitude,
             longitude = this.longitude,
-            placeName = this.placeName
+            placeName = this.placeName,
+            isMissed = this.isMissed
         )
     }
 }

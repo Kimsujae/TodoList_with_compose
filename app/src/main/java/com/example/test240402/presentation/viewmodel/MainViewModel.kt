@@ -45,7 +45,11 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             val currentTime = System.currentTimeMillis()
             items.forEach { item ->
-                if (item.isAlarmEnabled && item.alarmTime != null && item.alarmTime < currentTime) {
+                // 알람 시간이 지났고, 아직 완료되지 않았으며, 아직 'missed' 처리되지 않은 경우
+                if (item.isAlarmEnabled && item.alarmTime != null && item.alarmTime < currentTime && !item.isDone && !item.isMissed) {
+                    updateTodoUseCase(item.copy(isAlarmEnabled = false, isMissed = true))
+                } else if (item.isAlarmEnabled && item.alarmTime != null && item.alarmTime < currentTime) {
+                    // 이미 완료된 항목인데 알람만 켜져있는 경우 등은 알람만 끔
                     updateTodoUseCase(item.copy(isAlarmEnabled = false))
                 }
             }

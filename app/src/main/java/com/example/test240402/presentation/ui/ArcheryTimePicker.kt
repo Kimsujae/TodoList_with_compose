@@ -1,30 +1,43 @@
 package com.example.test240402.presentation.ui
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.forEachGesture
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -210,42 +223,43 @@ fun ArcheryTimePicker(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("시간과 분을 선택하세요", color = Color.White, style = MaterialTheme.typography.headlineMedium)
-                Spacer(modifier = Modifier.height(32.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    TimeDropdown("시", hour, 1..12) { hour = it }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("시", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TimeDropdown(hour, 1..12) { hour = it }
+                    }
+                    
                     Spacer(modifier = Modifier.width(16.dp))
-                    Text(":", color = Color.White, fontSize = 32.sp)
+                    Text(":", color = Color.White, fontSize = 32.sp, modifier = Modifier.padding(top = 22.dp))
                     Spacer(modifier = Modifier.width(16.dp))
-                    TimeDropdown("분", minute, 0..59) { minute = it }
+                    
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("분", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TimeDropdown(minute, 0..59) { minute = it }
+                    }
                 }
             }
         }
 
-        Column(modifier = Modifier.align(Alignment.TopCenter).padding(top = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = String.format("%02d:%02d %s", hour, minute, if (isAm) "AM" else "PM"),
-                fontSize = 54.sp, color = Color.White, style = MaterialTheme.typography.displayMedium)
-            val hint = when {
-                stage == PickerStage.SELECT_AM_PM -> "해/달을 맞춰 낮밤을 정하고, 'NEXT'를 쏘세요!"
-                !isDropdownMode -> "시계 숫자를 맞춰 시간을 정하세요!"
-                else -> "드랍다운으로 시간을 설정하세요."
+        if (!(stage == PickerStage.SELECT_TIME && isDropdownMode)) {
+            Column(modifier = Modifier.align(Alignment.TopCenter).padding(top = 60.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = String.format("%02d:%02d %s", hour, minute, if (isAm) "AM" else "PM"),
+                    fontSize = 54.sp, color = Color.White, style = MaterialTheme.typography.displayMedium)
+                val hint = when {
+                    stage == PickerStage.SELECT_AM_PM -> "해/달을 맞춰 낮밤을 정하고, 'NEXT'를 쏘세요!"
+                    !isDropdownMode -> "시계 숫자를 맞춰 시간을 정하세요!"
+                    else -> "드랍다운으로 시간을 설정하세요."
+                }
+                Text(text = hint, color = Color.White.copy(alpha = 0.8f))
             }
-            Text(text = hint, color = Color.White.copy(alpha = 0.8f))
         }
 
         // 버튼 위치를 위로 올림 (bottom = 80.dp)
         Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp).fillMaxWidth()) {
             if (stage == PickerStage.SELECT_TIME) {
                 Row(modifier = Modifier.align(Alignment.Center), verticalAlignment = Alignment.CenterVertically) {
-                    Button(
-                        onClick = { isDropdownMode = !isDropdownMode },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f))
-                    ) {
-                        Icon(if(isDropdownMode) Icons.Default.Gamepad else Icons.Default.Edit, null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if(isDropdownMode) "활쏘기로 변경" else "드랍다운으로 변경")
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
                     FloatingActionButton(
                         onClick = { onTimeSelected(hour, minute, isAm) },
                         containerColor = Color(0xFF4CAF50)
@@ -256,22 +270,95 @@ fun ArcheryTimePicker(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TimeDropdown(label: String, currentValue: Int, range: IntRange, onValueChange: (Int) -> Unit) {
+fun TimeDropdown(currentValue: Int, range: IntRange, onValueChange: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
+    var inputFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    val focusRequester = remember { FocusRequester() }
+
+    val submitInput = {
+        val parsed = inputFieldValue.text.toIntOrNull()
+        if (parsed != null) {
+            val validated = parsed.coerceIn(range.first, range.last)
+            onValueChange(validated)
+        }
+        isEditing = false
+    }
+
     Box {
         Surface(
-            modifier = Modifier.width(100.dp).clickable { expanded = true },
+            modifier = Modifier
+                .width(80.dp)
+                .combinedClickable(
+                    onClick = { expanded = true },
+                    onLongClick = {
+                        val text = String.format("%02d", currentValue)
+                        inputFieldValue = TextFieldValue(
+                            text = text,
+                            selection = TextRange(text.length)
+                        )
+                        isEditing = true
+                    }
+                ),
             shape = MaterialTheme.shapes.medium, color = Color.White.copy(alpha = 0.2f)
         ) {
-            Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(text = String.format("%02d", currentValue), color = Color.White, fontSize = 24.sp)
-                Icon(Icons.Default.ArrowDropDown, null, tint = Color.White)
+            Row(
+                modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isEditing) {
+                    BasicTextField(
+                        value = inputFieldValue,
+                        onValueChange = {
+                            if (it.text.length <= 2 && it.text.all { char -> char.isDigit() }) {
+                                inputFieldValue = it
+                            }
+                        },
+                        modifier = Modifier
+                            .width(40.dp)
+                            .focusRequester(focusRequester),
+                        textStyle = TextStyle(
+                            color = Color.White,
+                            fontSize = 28.sp,
+                            textAlign = TextAlign.Center
+                        ),
+                        cursorBrush = SolidColor(Color.White),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(onDone = { submitInput() }),
+                        singleLine = true
+                    )
+                    LaunchedEffect(Unit) {
+                        focusRequester.requestFocus()
+                    }
+                } else {
+                    Text(text = String.format("%02d", currentValue), color = Color.White, fontSize = 28.sp)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(Icons.Default.ArrowDropDown, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                }
             }
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+
+        DropdownMenu(
+            expanded = expanded, 
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(80.dp).heightIn(max = 250.dp)
+        ) {
             range.forEach { value ->
-                DropdownMenuItem(text = { Text(String.format("%02d %s", value, label)) }, onClick = { onValueChange(value); expanded = false })
+                DropdownMenuItem(
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    text = { 
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Text(String.format("%02d", value), fontSize = 18.sp)
+                        }
+                    }, 
+                    onClick = { onValueChange(value); expanded = false }
+                )
             }
         }
     }
